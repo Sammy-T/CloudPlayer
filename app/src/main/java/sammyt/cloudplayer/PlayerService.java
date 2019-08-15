@@ -38,7 +38,7 @@ public class PlayerService extends Service {
     private final IBinder mBinder = new PlayerBinder();
 
     private Context mContext = PlayerService.this;
-    public boolean mIsPlaying = false;
+    private boolean mIsPlaying = false;
     private ArrayList<Track> mTracks;
 
     private SimpleExoPlayer mPlayer;
@@ -68,19 +68,24 @@ public class PlayerService extends Service {
         mTracks = trackList;
     }
 
-    public void loadTrack(final Track track){
+    public boolean isPlaying(){
+        return mIsPlaying;
+    }
+
+    public void loadTrack(final int trackPos){
         final Handler handler = new Handler();
         new Thread(new Runnable() {
             @Override
             public void run() {
-                final Uri uri = Uri.parse(track.getStreamUrl());
+                final Uri uri = Uri.parse(mTracks.get(trackPos).getStreamUrl());
                 Log.d(LOG_TAG, "---- Track URI ----\n" + uri);
 
                 handler.post(new Runnable() {
                     @SuppressLint("RestrictedApi")
                     @Override
                     public void run() {
-                        String trackInfo = track.getUser().getUsername() + " - " + track.getTitle();
+                        String trackInfo = mTracks.get(trackPos).getUser().getUsername() + " - "
+                                + mTracks.get(trackPos).getTitle();
 
                         mPlayer.setPlayWhenReady(false);
 
@@ -122,8 +127,8 @@ public class PlayerService extends Service {
             NotificationManager notificationManager = (NotificationManager) this
                     .getSystemService(Context.NOTIFICATION_SERVICE);
 
-            // Register the channels with the system
-            // importance & notification behaviors can't be changed after this
+            // Register the channels with the system.
+            // Importance & Notification behaviors can't be changed after this
             notificationManager.createNotificationChannel(createChannel());
         }
 
@@ -132,7 +137,7 @@ public class PlayerService extends Service {
                 notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         NotificationCompat.Builder notifyBuilder = new NotificationCompat.Builder(this, "CloudPlayer");
-        notifyBuilder.setSmallIcon(R.drawable.ic_launcher_background)
+        notifyBuilder.setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("Cloud player title")
                 .setContentText("Cloud player text")
                 .setColor(ContextCompat.getColor(this, R.color.colorPrimary))
@@ -146,7 +151,7 @@ public class PlayerService extends Service {
         //// TODO:
         String channelName = "CloudPlayer channel name";
         String channelDescription = "CloudPlayer channel description";
-        int importance = NotificationManager.IMPORTANCE_DEFAULT;
+        int importance = NotificationManager.IMPORTANCE_LOW;
 
         NotificationChannel channel = new NotificationChannel("CloudPlayer", channelName, importance);
         channel.setDescription(channelDescription);

@@ -36,7 +36,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     }
 
     public interface onTrackClickListener{
-        void onTrackClick(Track track);
+        void onTrackClick(int position, Track track);
     }
 
     public void setOnTrackClickListener(onTrackClickListener l){
@@ -61,7 +61,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
     // Replace contents of view (invoked by Layout Manager)
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position){
+    public void onBindViewHolder(@NonNull final ViewHolder holder, int position){
         final Track track = mTracks.get(position);
         String info = track.getUser().getUsername() + " - " + track.getTitle();
 
@@ -70,7 +70,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
             @Override
             public void onClick(View v) {
                 if(mListener != null){
-                    mListener.onTrackClick(track);
+                    mListener.onTrackClick(holder.getAdapterPosition(), track);
                 }
             }
         });

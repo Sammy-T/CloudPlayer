@@ -47,6 +47,7 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
         soundCloud.login(mLoginName, mPassword);
 
         mUser = soundCloud.getMe();
+        SystemClock.sleep(500);
 
         int count = mUser.getPublicFavoritesCount();
         int limit = 50;
