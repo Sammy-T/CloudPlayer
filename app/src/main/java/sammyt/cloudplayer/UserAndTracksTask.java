@@ -41,10 +41,14 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
     @Override
     protected Void doInBackground(Void... params){
 
-        SoundCloud soundCloud = new SoundCloud(mClientId, mClientSecret);
-        Log.d(LOG_TAG, "SoundCloud: " + soundCloud);
+        //// TODO: Clean up if this proves to be more stable
+//        SoundCloud soundCloud = new SoundCloud(mClientId, mClientSecret);
+//        Log.d(LOG_TAG, "SoundCloud: " + soundCloud);
+//
+//        soundCloud.login(mLoginName, mPassword);
 
-        soundCloud.login(mLoginName, mPassword);
+        SoundCloud soundCloud = new SoundCloud(mClientId, mClientSecret, mLoginName, mPassword);
+        Log.d(LOG_TAG, "SoundCloud: " + soundCloud);
 
         mUser = soundCloud.getMe();
         SystemClock.sleep(500);
