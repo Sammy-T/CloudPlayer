@@ -19,6 +19,7 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.media2.exoplayer.external.ExoPlayerFactory;
+import androidx.media2.exoplayer.external.Player;
 import androidx.media2.exoplayer.external.SimpleExoPlayer;
 import androidx.media2.exoplayer.external.source.MediaSource;
 import androidx.media2.exoplayer.external.source.ProgressiveMediaSource;
@@ -37,12 +38,20 @@ public class PlayerService extends Service {
 
     private final IBinder mBinder = new PlayerBinder();
 
+    private PlayerServiceListener mListener;
+
     private Context mContext = PlayerService.this;
     private boolean mIsPlaying = false;
+    private int mCurrentTrack;
     private ArrayList<Track> mTracks;
 
     private SimpleExoPlayer mPlayer;
     private DataSource.Factory mDataSourceFactory;
+    private Handler mPlaybackHandler = new Handler();
+
+    public enum AdjustTrack{
+        previous, next
+    }
 
     public class PlayerBinder extends Binder{
         PlayerService getService(){
@@ -53,6 +62,15 @@ public class PlayerService extends Service {
     @Override
     public IBinder onBind(Intent intent){
         return mBinder;
+    }
+
+    public interface PlayerServiceListener{
+        void onTrackLoaded(Track track);
+        void onPlayback(float duration, float currentPos, float bufferPos);
+    }
+
+    public void setPlayerServiceListener(PlayerServiceListener l){
+        mListener = l;
     }
 
     @SuppressLint("RestrictedApi")
@@ -72,22 +90,24 @@ public class PlayerService extends Service {
         return mIsPlaying;
     }
 
-    public void loadTrack(final int trackPos){
+    public void loadTrack(int trackPos){
+        mCurrentTrack = trackPos;
+
         final Handler handler = new Handler();
         new Thread(new Runnable() {
             @Override
             public void run() {
-                final Uri uri = Uri.parse(mTracks.get(trackPos).getStreamUrl());
+                final Uri uri = Uri.parse(mTracks.get(mCurrentTrack).getStreamUrl());
                 Log.d(LOG_TAG, "---- Track URI ----\n" + uri);
 
                 handler.post(new Runnable() {
                     @SuppressLint("RestrictedApi")
                     @Override
                     public void run() {
-                        String trackInfo = mTracks.get(trackPos).getUser().getUsername() + " - "
-                                + mTracks.get(trackPos).getTitle();
+                        String trackInfo = mTracks.get(mCurrentTrack).getUser().getUsername() + " - "
+                                + mTracks.get(mCurrentTrack).getTitle();
 
-                        mPlayer.setPlayWhenReady(false);
+                        mPlayer.setPlayWhenReady(false); // Stop playing the previous track
 
                         MediaSource mediaSource = new ProgressiveMediaSource.Factory(mDataSourceFactory)
                                 .createMediaSource(uri);
@@ -97,6 +117,14 @@ public class PlayerService extends Service {
 
                         mIsPlaying = true;
 
+                        // Call the track loaded interface
+                        if(mListener != null){
+                            mListener.onTrackLoaded(mTracks.get(mCurrentTrack));
+                        }
+
+                        // Start playback monitoring
+                        mPlaybackHandler.postDelayed(mProgressRunnable, 0);
+
                         startForeground(111, buildNotification());
                     }
                 });
@@ -104,10 +132,77 @@ public class PlayerService extends Service {
         }).start();
     }
 
+    // Keeps track of the player's current playback information
+    // This Runnable will repeatedly call itself as long as the player isn't idle or ended
+    private Runnable mProgressRunnable = new Runnable(){
+        @SuppressLint("RestrictedApi")
+        @Override
+        public void run() {
+            mPlaybackHandler.removeCallbacks(mProgressRunnable); // Make sure we're only using one runnable
+
+            long delay = 1000; // Delay for one second
+
+            Log.d(LOG_TAG,"duration: " + mPlayer.getDuration()
+                    + " current pos: " + mPlayer.getCurrentPosition()
+                    + " buffered pos: " + mPlayer.getBufferedPosition());
+
+            // Provide the playback info to the listener callback
+            if(mListener != null){
+                mListener.onPlayback(mPlayer.getDuration(), mPlayer.getCurrentPosition(),
+                        mPlayer.getBufferedPosition());
+            }
+
+            int playbackState = mPlayer.getPlaybackState();
+
+            // Call this Runnable again if the player is in a valid state
+            if(playbackState != Player.STATE_IDLE && playbackState != Player.STATE_ENDED){
+                mPlaybackHandler.postDelayed(mProgressRunnable, delay);
+            }
+        }
+    };
+
+    @SuppressLint("RestrictedApi")
+    public void seekTo(float progress){
+        long progressPos = (long)(progress / 100 * mPlayer.getDuration());
+
+        mPlayer.seekTo(progressPos);
+    }
+
+    public void adjustTrack(AdjustTrack direction){
+        int adjustTrackPos = mCurrentTrack;
+
+        switch(direction){
+            case previous:
+                if(mCurrentTrack == 0){
+                    adjustTrackPos = mTracks.size() - 1;
+                }else{
+                    adjustTrackPos = mCurrentTrack - 1;
+                }
+                break;
+
+            case next:
+                if(mCurrentTrack == mTracks.size() - 1){
+                    adjustTrackPos = 0;
+                }else{
+                    adjustTrackPos = mCurrentTrack + 1;
+                }
+                break;
+        }
+
+        loadTrack(adjustTrackPos);
+    }
+
     @SuppressLint("RestrictedApi")
     public void togglePlay(boolean play){
         mIsPlaying = play;
         mPlayer.setPlayWhenReady(mIsPlaying);
+
+        // Start or stop the playback monitoring depending on whether the track is playing
+        if(mIsPlaying){
+            mPlaybackHandler.postDelayed(mProgressRunnable, 0);
+        }else{
+            mPlaybackHandler.removeCallbacks(mProgressRunnable);
+        }
     }
 
     @SuppressLint("RestrictedApi")
@@ -136,6 +231,7 @@ public class PlayerService extends Service {
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
                 notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
+        //// TODO: Build a Media Control Notification
         NotificationCompat.Builder notifyBuilder = new NotificationCompat.Builder(this, "CloudPlayer");
         notifyBuilder.setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("Cloud player title")
@@ -148,7 +244,7 @@ public class PlayerService extends Service {
 
     @TargetApi(26)
     private NotificationChannel createChannel(){
-        //// TODO:
+        //// TODO: Put useful values in here
         String channelName = "CloudPlayer channel name";
         String channelDescription = "CloudPlayer channel description";
         int importance = NotificationManager.IMPORTANCE_LOW;

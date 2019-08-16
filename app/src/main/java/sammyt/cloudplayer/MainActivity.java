@@ -6,13 +6,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.DragEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,12 +25,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 
 import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements PlayerService.PlayerServiceListener {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
@@ -39,8 +45,13 @@ public class MainActivity extends AppCompatActivity {
     private PlayerService mService;
     private boolean mBound = false;
 
+    private boolean mIsDragging = false;
+
     private ImageView mImageView;
     private TextView mInfoView;
+    private SeekBar mSeekBar;
+    private TextView mTrackTime;
+    private Button mPlay;
     private RecyclerView mTrackRecycler;
     private ProgressBar mLoading;
 
@@ -56,15 +67,57 @@ public class MainActivity extends AppCompatActivity {
 
         mImageView = findViewById(R.id.track_image);
         mInfoView = findViewById(R.id.track_info);
-        Button button = findViewById(R.id.button);
+        mSeekBar = findViewById(R.id.track_seekbar);
+        mTrackTime = findViewById(R.id.track_time);
+        mPlay = findViewById(R.id.play);
+        Button previous = findViewById(R.id.previous);
+        Button next = findViewById(R.id.next);
         mTrackRecycler = findViewById(R.id.track_recycler);
         mLoading = findViewById(R.id.loading);
 
-        button.setOnClickListener(new View.OnClickListener() {
+        mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if(mBound && fromUser){
+                    mService.seekTo(progress);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                mIsDragging = true;
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                mIsDragging = false;
+            }
+        });
+
+        mPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(mBound){
                     mService.togglePlay(!mService.isPlaying());
+                    updateUI();
+                }
+            }
+        });
+
+        previous.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(mBound){
+                    mService.adjustTrack(PlayerService.AdjustTrack.previous);
+                }
+            }
+        });
+
+        next.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(mBound){
+                    mService.adjustTrack(PlayerService.AdjustTrack.next);
                 }
             }
         });
@@ -77,29 +130,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onTrackClick(int position, Track track) {
                 if(mBound){
-                    Log.d(LOG_TAG, "art url: " + track.getArtworkUrl());
-                    final Uri imageUri = Uri.parse(track.getArtworkUrl());
-                    Picasso.get()
-                            .load(imageUri)
-                            .resize(mImageView.getWidth(), mImageView.getHeight())
-                            .onlyScaleDown()
-                            .centerCrop()
-                            .error(android.R.drawable.stat_notify_error)
-                            .into(mImageView, new Callback() {
-                                @Override
-                                public void onSuccess() {
-                                    Log.d(LOG_TAG, "Picasso successfully loaded " + imageUri);
-                                }
-
-                                @Override
-                                public void onError(Exception e) {
-                                    Log.e(LOG_TAG, "Picasso error " + imageUri, e);
-                                }
-                            });
-
-                    String info = track.getUser().getUsername() + " - " + track.getTitle();
-                    mInfoView.setText(info);
-
                     mService.loadTrack(position);
                 }
             }
@@ -148,11 +178,13 @@ public class MainActivity extends AppCompatActivity {
     private void init(){
         setVisibleView(VisibleView.loading);
 
-        if(!mBound) {
+        if(!mBound){
             Log.d(LOG_TAG, "bind service");
 
             Intent intent = new Intent(MainActivity.this, PlayerService.class);
             bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+        }else{
+            updateUI();
         }
 
         // Get the user and favorite tracks
@@ -194,6 +226,68 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void updateUI(){
+        if(mService.isPlaying()){
+            mPlay.setText("Pause");
+        }else{
+            mPlay.setText("Play");
+        }
+    }
+
+    // Player Service Interface
+    public void onTrackLoaded(Track track){
+        Log.d(LOG_TAG, "art url: " + track.getArtworkUrl());
+
+        // Load the track image
+        final Uri imageUri = Uri.parse(track.getArtworkUrl());
+        Picasso.get()
+                .load(imageUri)
+                .resize(mImageView.getWidth(), mImageView.getHeight())
+                .onlyScaleDown()
+                .centerCrop()
+                .error(android.R.drawable.stat_notify_error)
+                .into(mImageView, new Callback() {
+                    @Override
+                    public void onSuccess() {
+                        Log.d(LOG_TAG, "Picasso successfully loaded " + imageUri);
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Log.e(LOG_TAG, "Picasso error " + imageUri, e);
+                    }
+                });
+
+        String info = track.getUser().getUsername() + " - " + track.getTitle();
+        mInfoView.setText(info);
+
+        updateUI();
+    }
+
+    public void onPlayback(float duration, float currentPos, float bufferPos){
+        int progress = (int) (currentPos / duration * 100);
+        int bufferProgress = (int) (bufferPos / duration * 100);
+
+        Log.d(LOG_TAG, "playback progress: " + progress);
+
+        if(!mIsDragging){
+            mSeekBar.setProgress(progress);
+            mSeekBar.setSecondaryProgress(bufferProgress);
+        }
+
+        // Build the time display of the track
+        String currentText = new SimpleDateFormat("mm:ss", Locale.getDefault())
+                .format(new Date((long)currentPos));
+
+        String durationText = new SimpleDateFormat("mm:ss", Locale.getDefault())
+                .format(new Date((long)duration));
+
+        String timeText = currentText + " / " + durationText;
+
+        mTrackTime.setText(timeText);
+    }
+
+    // Player Service Connection
     private ServiceConnection mConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -205,6 +299,9 @@ public class MainActivity extends AppCompatActivity {
             mService = binder.getService();
             mBound = true;
 
+            // Set up the interface so we can receive call backs
+            // then initialize the player
+            mService.setPlayerServiceListener(MainActivity.this);
             mService.initPlayer();
         }
 

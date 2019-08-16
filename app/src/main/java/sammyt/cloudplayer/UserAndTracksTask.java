@@ -1,6 +1,5 @@
 package sammyt.cloudplayer;
 
-import android.content.Context;
 import android.os.AsyncTask;
 import android.os.SystemClock;
 import android.util.Log;
@@ -43,11 +42,13 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
     protected Void doInBackground(Void... params){
 
         SoundCloud soundCloud = new SoundCloud(mClientId, mClientSecret);
+        Log.d(LOG_TAG, "SoundCloud: " + soundCloud);
 
         soundCloud.login(mLoginName, mPassword);
 
         mUser = soundCloud.getMe();
         SystemClock.sleep(500);
+        Log.d(LOG_TAG, "user: " + mUser);
 
         int count = mUser.getPublicFavoritesCount();
         int limit = 50;
