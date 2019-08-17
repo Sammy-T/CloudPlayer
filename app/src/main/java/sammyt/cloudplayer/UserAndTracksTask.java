@@ -51,7 +51,7 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
         Log.d(LOG_TAG, "login success: " + loginSuccess);
 
         if(!loginSuccess){
-            Log.d(LOG_TAG, "SoundCloud login failed, cancelling task.");
+            Log.e(LOG_TAG, "SoundCloud login failed, cancelling task.");
             cancel(true);
             return null;
         }
