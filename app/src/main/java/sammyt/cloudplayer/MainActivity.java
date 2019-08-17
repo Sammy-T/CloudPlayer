@@ -149,10 +149,12 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
     @SuppressLint("RestrictedApi")
     @Override
     public void onPause(){
-        Log.d(LOG_TAG, "is playing: " + mService.isPlaying());
+        if(mBound) {
+            Log.d(LOG_TAG, "is playing: " + mService.isPlaying());
+        }
 
         // Release the player & unbind the service if nothing is playing
-        if(!mService.isPlaying()) {
+        if (mBound && !mService.isPlaying()) {
             Log.d(LOG_TAG, "unbind service");
 
             mService.releasePlayer();
@@ -238,25 +240,46 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
     public void onTrackLoaded(Track track){
         Log.d(LOG_TAG, "art url: " + track.getArtworkUrl());
 
-        // Load the track image
-        final Uri imageUri = Uri.parse(track.getArtworkUrl());
-        Picasso.get()
-                .load(imageUri)
-                .resize(mImageView.getWidth(), mImageView.getHeight())
-                .onlyScaleDown()
-                .centerCrop()
-                .error(android.R.drawable.stat_notify_error)
-                .into(mImageView, new Callback() {
-                    @Override
-                    public void onSuccess() {
-                        Log.d(LOG_TAG, "Picasso successfully loaded " + imageUri);
-                    }
+        final String trackArtUrl = track.getArtworkUrl();
+        if(trackArtUrl != null){
+            // Load the track image
+            Picasso.get()
+                    .load(trackArtUrl)
+                    .resize(mImageView.getWidth(), mImageView.getHeight())
+                    .onlyScaleDown()
+                    .centerCrop()
+                    .error(android.R.drawable.stat_notify_error)
+                    .into(mImageView, new Callback() {
+                        @Override
+                        public void onSuccess() {
+                            Log.d(LOG_TAG, "Picasso successfully loaded " + trackArtUrl);
+                        }
 
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(LOG_TAG, "Picasso error " + imageUri, e);
-                    }
-                });
+                        @Override
+                        public void onError(Exception e) {
+                            Log.e(LOG_TAG, "Picasso error " + trackArtUrl, e);
+                        }
+                    });
+        }else{
+            // Load the fallback image
+            Picasso.get()
+                    .load(R.drawable.ic_play_grey600_36dp)
+                    .resize(mImageView.getWidth(), mImageView.getHeight())
+                    .onlyScaleDown()
+                    .centerInside()
+                    .error(android.R.drawable.stat_notify_error)
+                    .into(mImageView, new Callback() {
+                        @Override
+                        public void onSuccess() {
+                            Log.d(LOG_TAG, "Picasso successfully loaded fallback image");
+                        }
+
+                        @Override
+                        public void onError(Exception e) {
+                            Log.e(LOG_TAG, "Picasso error loading fallback image", e);
+                        }
+                    });
+        }
 
         String info = track.getUser().getUsername() + " - " + track.getTitle();
         mInfoView.setText(info);
@@ -267,8 +290,6 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
     public void onPlayback(float duration, float currentPos, float bufferPos){
         int progress = (int) (currentPos / duration * 100);
         int bufferProgress = (int) (bufferPos / duration * 100);
-
-        Log.d(LOG_TAG, "playback progress: " + progress);
 
         if(!mIsDragging){
             mSeekBar.setProgress(progress);
