@@ -17,6 +17,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -157,7 +158,6 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         if (mBound && !mService.isPlaying()) {
             Log.d(LOG_TAG, "unbind service");
 
-            mService.releasePlayer();
             unbindService(mConnection);
             mBound = false;
         }
@@ -172,7 +172,8 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         // The activity is being destroyed,
         // release the player & unbind the service
         if(mBound) {
-            mService.releasePlayer();
+            Log.d(LOG_TAG, "unbind service");
+
             unbindService(mConnection);
         }
     }
@@ -206,10 +207,33 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
                 mFaveTracks = faveTracks;
 
                 mAdapter.updateTracks(mFaveTracks);
-
                 mService.setTrackList(mFaveTracks);
 
+                mService.setUser(mUser);
+
                 setVisibleView(VisibleView.recycler);
+            }
+
+            @Override
+            public void onFailure(){
+                // Try to get the values from the service
+                if(mBound){
+                    mUser = mService.getUser();
+                    mFaveTracks = mService.getTrackList();
+
+                    Log.d(LOG_TAG, "Tried retrieving from Service." +
+                            "\nuser: " + mUser + "\ntracks: " + mFaveTracks);
+
+                    if(mFaveTracks != null){
+                        mAdapter.updateTracks(mFaveTracks);
+
+                        setVisibleView(VisibleView.recycler);
+
+                        Toast.makeText(MainActivity.this, "Retrieved data from service",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                    //// TODO: Else, provide a button to request a manual load
+                }
             }
         });
     }

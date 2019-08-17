@@ -1,5 +1,6 @@
 package sammyt.cloudplayer;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -83,7 +84,6 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     }
 
     public void updateTracks(ArrayList<Track> tracks){
-        mTracks.clear();
         mTracks = tracks;
         notifyDataSetChanged();
     }

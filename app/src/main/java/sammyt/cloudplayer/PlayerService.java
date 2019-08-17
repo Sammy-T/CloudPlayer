@@ -19,13 +19,20 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+import androidx.media2.exoplayer.external.ExoPlaybackException;
 import androidx.media2.exoplayer.external.ExoPlayerFactory;
+import androidx.media2.exoplayer.external.PlaybackParameters;
 import androidx.media2.exoplayer.external.Player;
+import androidx.media2.exoplayer.external.Player$EventListener$$CC;
 import androidx.media2.exoplayer.external.SimpleExoPlayer;
+import androidx.media2.exoplayer.external.Timeline;
 import androidx.media2.exoplayer.external.source.MediaSource;
 import androidx.media2.exoplayer.external.source.ProgressiveMediaSource;
+import androidx.media2.exoplayer.external.source.TrackGroupArray;
+import androidx.media2.exoplayer.external.trackselection.TrackSelectionArray;
 import androidx.media2.exoplayer.external.upstream.DataSource;
 import androidx.media2.exoplayer.external.upstream.DefaultDataSourceFactory;
 import androidx.media2.exoplayer.external.util.Util;
@@ -52,6 +59,7 @@ public class PlayerService extends Service {
     private PlayerServiceListener mListener;
 
     private Context mContext = PlayerService.this;
+    private User mUser;
     private boolean mIsPlaying = false;
     private int mCurrentTrack;
     private ArrayList<Track> mTracks;
@@ -100,10 +108,11 @@ public class PlayerService extends Service {
         return START_STICKY;
     }
 
-    //// TODO: I don't really need onDestroy so I should remove this
     @Override
     public void onDestroy(){
         Log.d(LOG_TAG, "PlayerService destroyed");
+        releasePlayer();
+
         super.onDestroy();
     }
 
@@ -122,11 +131,25 @@ public class PlayerService extends Service {
             mPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
             mDataSourceFactory = new DefaultDataSourceFactory(mContext,
                     Util.getUserAgent(mContext, "Cloud Player"));
+
+            mPlayer.addListener(new PlayerEventListener());
         }
+    }
+
+    public void setUser(User user){
+        mUser = user;
+    }
+
+    public User getUser(){
+        return mUser;
     }
 
     public void setTrackList(ArrayList<Track> trackList){
         mTracks = trackList;
+    }
+
+    public ArrayList<Track> getTrackList(){
+        return mTracks;
     }
 
     public boolean isPlaying(){
@@ -361,5 +384,32 @@ public class PlayerService extends Service {
         }
 
         return PendingIntent.getService(mContext, requestCode, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    class PlayerEventListener implements Player.EventListener{
+
+        public void onLoadingChanged(boolean isLoading){}
+
+        public void onPlaybackParametersChanged(PlaybackParameters playbackParameters){}
+
+        public void onPlayerError(ExoPlaybackException error){}
+
+        public void onPlayerStateChanged(boolean playWhenReady, int playbackState){
+            if(playWhenReady && playbackState == Player.STATE_ENDED){
+                adjustTrack(AdjustTrack.next);
+            }
+        }
+
+        public void onPositionDiscontinuity(int reason){}
+
+        public void onRepeatModeChanged(int repeatMode){}
+
+        public void onSeekProcessed(){}
+
+        public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled){}
+
+        public void onTimelineChanged(Timeline timeline, @Nullable Object manifest, int reason) {}
+
+        public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections){}
     }
 }
