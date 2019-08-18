@@ -109,6 +109,14 @@ public class PlayerService extends Service {
     }
 
     @Override
+    public boolean onUnbind(Intent intent){
+        Log.d(LOG_TAG, "on unbind");
+        stopSelf();
+
+        return super.onUnbind(intent);
+    }
+
+    @Override
     public void onDestroy(){
         Log.d(LOG_TAG, "PlayerService destroyed");
         releasePlayer();
@@ -263,8 +271,12 @@ public class PlayerService extends Service {
         // Start or stop the playback monitoring depending on whether the track is playing
         if(mIsPlaying){
             mPlaybackHandler.postDelayed(mProgressRunnable, 0);
+            if(mTracks != null) {
+                buildMediaNotification();
+            }
         }else{
             mPlaybackHandler.removeCallbacks(mProgressRunnable);
+            stopForeground(false);
         }
     }
 
