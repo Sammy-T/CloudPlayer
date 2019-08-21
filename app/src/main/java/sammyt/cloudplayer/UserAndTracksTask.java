@@ -1,6 +1,5 @@
 package sammyt.cloudplayer;
 
-import android.content.Context;
 import android.os.AsyncTask;
 import android.os.SystemClock;
 import android.util.Log;
@@ -33,6 +32,7 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
 
     public interface onFinishListener{
         void onFinish(User user, ArrayList<Track> faveTracks);
+        void onFailure();
     }
 
     public void setOnFinishListener(onFinishListener l){
@@ -43,10 +43,22 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
     protected Void doInBackground(Void... params){
 
         SoundCloud soundCloud = new SoundCloud(mClientId, mClientSecret);
+        Log.d(LOG_TAG, "SoundCloud: " + soundCloud);
+//        SystemClock.sleep(2000);
+        //// TODO: Let's see if this delay makes login more reliable before adding cancel/error handling
 
-        soundCloud.login(mLoginName, mPassword);
+        boolean loginSuccess = soundCloud.login(mLoginName, mPassword);
+        Log.d(LOG_TAG, "login success: " + loginSuccess);
+
+        if(!loginSuccess){
+            Log.e(LOG_TAG, "SoundCloud login failed, cancelling task.");
+            cancel(true);
+            return null;
+        }
 
         mUser = soundCloud.getMe();
+        SystemClock.sleep(500);
+        Log.d(LOG_TAG, "user: " + mUser);
 
         int count = mUser.getPublicFavoritesCount();
         int limit = 50;
@@ -61,6 +73,13 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
         }
 
         return null;
+    }
+
+    @Override
+    protected void onCancelled(){
+        if(mListener != null){
+            mListener.onFailure();
+        }
     }
 
     @Override

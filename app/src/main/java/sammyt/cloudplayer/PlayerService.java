@@ -9,23 +9,37 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+import androidx.media2.exoplayer.external.ExoPlaybackException;
 import androidx.media2.exoplayer.external.ExoPlayerFactory;
+import androidx.media2.exoplayer.external.PlaybackParameters;
+import androidx.media2.exoplayer.external.Player;
+import androidx.media2.exoplayer.external.Player$EventListener$$CC;
 import androidx.media2.exoplayer.external.SimpleExoPlayer;
+import androidx.media2.exoplayer.external.Timeline;
 import androidx.media2.exoplayer.external.source.MediaSource;
 import androidx.media2.exoplayer.external.source.ProgressiveMediaSource;
+import androidx.media2.exoplayer.external.source.TrackGroupArray;
+import androidx.media2.exoplayer.external.trackselection.TrackSelectionArray;
 import androidx.media2.exoplayer.external.upstream.DataSource;
 import androidx.media2.exoplayer.external.upstream.DefaultDataSourceFactory;
 import androidx.media2.exoplayer.external.util.Util;
 
+import com.squareup.picasso.Picasso;
+
+import java.io.IOException;
 import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Track;
@@ -35,14 +49,28 @@ public class PlayerService extends Service {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
+    private static final String PLAYER_ACTION_EXTRA = "EXTRA_PLAYER_ACTION";
+    private static final int PLAYER_ACTION_PLAY_PAUSE = 0;
+    private static final int PLAYER_ACTION_NEXT = 1;
+    private static final int PLAYER_ACTION_PREV = 2;
+
     private final IBinder mBinder = new PlayerBinder();
 
+    private PlayerServiceListener mListener;
+
     private Context mContext = PlayerService.this;
-    public boolean mIsPlaying = false;
+    private User mUser;
+    private boolean mIsPlaying = false;
+    private int mCurrentTrack;
     private ArrayList<Track> mTracks;
 
     private SimpleExoPlayer mPlayer;
     private DataSource.Factory mDataSourceFactory;
+    private Handler mPlaybackHandler = new Handler();
+
+    public enum AdjustTrack{
+        previous, next
+    }
 
     public class PlayerBinder extends Binder{
         PlayerService getService(){
@@ -55,34 +83,105 @@ public class PlayerService extends Service {
         return mBinder;
     }
 
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId){
+        Log.d(LOG_TAG, "PlayerService onStartCommand // intent: " + intent + " flags: "
+                + flags + " startId: " + startId);
+
+        if(intent.hasExtra(PLAYER_ACTION_EXTRA)){
+            switch(intent.getIntExtra(PLAYER_ACTION_EXTRA, 0)){
+                case PLAYER_ACTION_PLAY_PAUSE:
+                    togglePlay(!mIsPlaying);
+                    break;
+
+                case PLAYER_ACTION_PREV:
+                    adjustTrack(AdjustTrack.previous);
+                    break;
+
+                case PLAYER_ACTION_NEXT:
+                    adjustTrack(AdjustTrack.next);
+                    break;
+            }
+
+            buildMediaNotification(); // Update the notification
+        }
+        return START_STICKY;
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent){
+        Log.d(LOG_TAG, "on unbind");
+        stopSelf();
+
+        return super.onUnbind(intent);
+    }
+
+    @Override
+    public void onDestroy(){
+        Log.d(LOG_TAG, "PlayerService destroyed");
+        releasePlayer();
+
+        super.onDestroy();
+    }
+
+    public interface PlayerServiceListener{
+        void onTrackLoaded(Track track);
+        void onPlayback(float duration, float currentPos, float bufferPos);
+    }
+
+    public void setPlayerServiceListener(PlayerServiceListener l){
+        mListener = l;
+    }
+
     @SuppressLint("RestrictedApi")
     public void initPlayer(){
         if(mPlayer == null) {
             mPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
             mDataSourceFactory = new DefaultDataSourceFactory(mContext,
                     Util.getUserAgent(mContext, "Cloud Player"));
+
+            mPlayer.addListener(new PlayerEventListener());
         }
+    }
+
+    public void setUser(User user){
+        mUser = user;
+    }
+
+    public User getUser(){
+        return mUser;
     }
 
     public void setTrackList(ArrayList<Track> trackList){
         mTracks = trackList;
     }
 
-    public void loadTrack(final Track track){
+    public ArrayList<Track> getTrackList(){
+        return mTracks;
+    }
+
+    public boolean isPlaying(){
+        return mIsPlaying;
+    }
+
+    public void loadTrack(int trackPos){
+        mCurrentTrack = trackPos;
+
         final Handler handler = new Handler();
         new Thread(new Runnable() {
             @Override
             public void run() {
-                final Uri uri = Uri.parse(track.getStreamUrl());
+                final Uri uri = Uri.parse(mTracks.get(mCurrentTrack).getStreamUrl());
                 Log.d(LOG_TAG, "---- Track URI ----\n" + uri);
 
                 handler.post(new Runnable() {
                     @SuppressLint("RestrictedApi")
                     @Override
                     public void run() {
-                        String trackInfo = track.getUser().getUsername() + " - " + track.getTitle();
+                        String trackInfo = mTracks.get(mCurrentTrack).getUser().getUsername() + " - "
+                                + mTracks.get(mCurrentTrack).getTitle();
 
-                        mPlayer.setPlayWhenReady(false);
+                        mPlayer.setPlayWhenReady(false); // Stop playing the previous track
 
                         MediaSource mediaSource = new ProgressiveMediaSource.Factory(mDataSourceFactory)
                                 .createMediaSource(uri);
@@ -92,17 +191,93 @@ public class PlayerService extends Service {
 
                         mIsPlaying = true;
 
-                        startForeground(111, buildNotification());
+                        // Call the track loaded interface
+                        if(mListener != null){
+                            mListener.onTrackLoaded(mTracks.get(mCurrentTrack));
+                        }
+
+                        // Start playback monitoring
+                        mPlaybackHandler.postDelayed(mProgressRunnable, 0);
+
+                        // Build the Media Notification & place the service in the foreground
+                        buildMediaNotification();
                     }
                 });
             }
         }).start();
     }
 
+    // Keeps track of the player's current playback information
+    // This Runnable will repeatedly call itself as long as the player isn't idle or ended
+    private Runnable mProgressRunnable = new Runnable(){
+        @SuppressLint("RestrictedApi")
+        @Override
+        public void run() {
+            mPlaybackHandler.removeCallbacks(mProgressRunnable); // Make sure we're only using one runnable
+
+            long delay = 1000; // Delay for one second
+
+            // Provide the playback info to the listener callback
+            if(mListener != null){
+                mListener.onPlayback(mPlayer.getDuration(), mPlayer.getCurrentPosition(),
+                        mPlayer.getBufferedPosition());
+            }
+
+            int playbackState = mPlayer.getPlaybackState();
+
+            // Call this Runnable again if the player is in a valid state
+            if(playbackState != Player.STATE_IDLE && playbackState != Player.STATE_ENDED){
+                mPlaybackHandler.postDelayed(mProgressRunnable, delay);
+            }
+        }
+    };
+
+    @SuppressLint("RestrictedApi")
+    public void seekTo(float progress){
+        long progressPos = (long)(progress / 100 * mPlayer.getDuration());
+
+        mPlayer.seekTo(progressPos);
+    }
+
+    public void adjustTrack(AdjustTrack direction){
+        int adjustTrackPos = mCurrentTrack;
+
+        switch(direction){
+            case previous:
+                if(mCurrentTrack == 0){
+                    adjustTrackPos = mTracks.size() - 1;
+                }else{
+                    adjustTrackPos = mCurrentTrack - 1;
+                }
+                break;
+
+            case next:
+                if(mCurrentTrack == mTracks.size() - 1){
+                    adjustTrackPos = 0;
+                }else{
+                    adjustTrackPos = mCurrentTrack + 1;
+                }
+                break;
+        }
+
+        loadTrack(adjustTrackPos);
+    }
+
     @SuppressLint("RestrictedApi")
     public void togglePlay(boolean play){
         mIsPlaying = play;
         mPlayer.setPlayWhenReady(mIsPlaying);
+
+        // Start or stop the playback monitoring depending on whether the track is playing
+        if(mIsPlaying){
+            mPlaybackHandler.postDelayed(mProgressRunnable, 0);
+            if(mTracks != null) {
+                buildMediaNotification();
+            }
+        }else{
+            mPlaybackHandler.removeCallbacks(mProgressRunnable);
+            stopForeground(false);
+        }
     }
 
     @SuppressLint("RestrictedApi")
@@ -115,38 +290,82 @@ public class PlayerService extends Service {
         }
     }
 
-    private Notification buildNotification(){
+    private void buildMediaNotification(){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // Create Notification Channel on API 26+
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+                    NotificationManager notificationManager = (NotificationManager) mContext
+                            .getSystemService(Context.NOTIFICATION_SERVICE);
 
-        // Create Notification Channel on API 26+
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-            NotificationManager notificationManager = (NotificationManager) this
-                    .getSystemService(Context.NOTIFICATION_SERVICE);
+                    // Register the channels with the system.
+                    // Importance & Notification behaviors can't be changed after this
+                    notificationManager.createNotificationChannel(createChannel());
+                }
 
-            // Register the channels with the system
-            // importance & notification behaviors can't be changed after this
-            notificationManager.createNotificationChannel(createChannel());
-        }
+                Intent notificationIntent = new Intent(mContext, MainActivity.class);
+                PendingIntent pendingIntent = PendingIntent.getActivity(mContext, 650,
+                        notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
-                notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                Track track = mTracks.get(mCurrentTrack);
+                String trackTitle = track.getTitle();
+                String trackArtist = track.getUser().getUsername();
+                String trackImage = track.getArtworkUrl();
 
-        NotificationCompat.Builder notifyBuilder = new NotificationCompat.Builder(this, "CloudPlayer");
-        notifyBuilder.setSmallIcon(R.drawable.ic_launcher_background)
-                .setContentTitle("Cloud player title")
-                .setContentText("Cloud player text")
-                .setColor(ContextCompat.getColor(this, R.color.colorPrimary))
-                .setContentIntent(pendingIntent);
+                NotificationCompat.Builder notifyBuilder = new NotificationCompat
+                        .Builder(mContext, "CloudPlayer");
+                notifyBuilder.setSmallIcon(R.drawable.play)
+                        .setContentTitle(trackTitle)
+                        .setContentText(trackArtist)
+                        .setColor(ContextCompat.getColor(mContext, R.color.colorPrimary))
+                        .setContentIntent(pendingIntent)
+                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
-        return notifyBuilder.build();
+                try {
+                    Bitmap trackImageIcon = Picasso.get()
+                            .load(trackImage)
+                            .resize(1000, 1000)
+                            .onlyScaleDown()
+                            .centerInside()
+                            .get();
+
+                    notifyBuilder.setLargeIcon(trackImageIcon);
+
+                }catch(IOException e){
+                    Log.e(LOG_TAG, "Error getting bitmap", e);
+                }
+
+                PendingIntent previousPendingIntent = createActionPendingIntent(PLAYER_ACTION_PREV);
+                PendingIntent playPendingIntent = createActionPendingIntent(PLAYER_ACTION_PLAY_PAUSE);
+                PendingIntent nextPendingIntent = createActionPendingIntent(PLAYER_ACTION_NEXT);
+
+                int playOrPauseIcon = R.drawable.play;
+
+                if(mIsPlaying){
+                    playOrPauseIcon = R.drawable.pause;
+                }
+
+                notifyBuilder.addAction(R.drawable.skip_previous, "Previous", previousPendingIntent); // #0
+                notifyBuilder.addAction(playOrPauseIcon, "Play", playPendingIntent); // #1
+                notifyBuilder.addAction(R.drawable.skip_next, "Next", nextPendingIntent); // # 2
+
+                // Set this as a Media Style notification with 3 actions visible in its compact mode
+                notifyBuilder.setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
+                        .setShowActionsInCompactView(0, 1, 2)); // The indices of the actions. Can use up to 3 actions
+                //// TODO: Try to get media session from player?
+
+                startForeground(111, notifyBuilder.build());
+            }
+        }).start();
     }
 
     @TargetApi(26)
     private NotificationChannel createChannel(){
-        //// TODO:
+        //// TODO: Put useful values in here
         String channelName = "CloudPlayer channel name";
         String channelDescription = "CloudPlayer channel description";
-        int importance = NotificationManager.IMPORTANCE_DEFAULT;
+        int importance = NotificationManager.IMPORTANCE_LOW;
 
         NotificationChannel channel = new NotificationChannel("CloudPlayer", channelName, importance);
         channel.setDescription(channelDescription);
@@ -155,5 +374,54 @@ public class PlayerService extends Service {
         channel.setLightColor(R.color.colorPrimary);
 
         return channel;
+    }
+
+    // Creates the Pending Intent corresponding to the notification button's player action
+    private PendingIntent createActionPendingIntent(int playerAction){
+        Intent actionIntent = new Intent(mContext, PlayerService.class);
+        actionIntent.putExtra(PLAYER_ACTION_EXTRA, playerAction);
+
+        int requestCode = 651;
+
+        switch(playerAction){
+            case PLAYER_ACTION_PLAY_PAUSE:
+                requestCode = 651;
+                break;
+            case PLAYER_ACTION_PREV:
+                requestCode = 652;
+                break;
+            case PLAYER_ACTION_NEXT:
+                requestCode = 653;
+                break;
+        }
+
+        return PendingIntent.getService(mContext, requestCode, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    class PlayerEventListener implements Player.EventListener{
+
+        public void onLoadingChanged(boolean isLoading){}
+
+        public void onPlaybackParametersChanged(PlaybackParameters playbackParameters){}
+
+        public void onPlayerError(ExoPlaybackException error){}
+
+        public void onPlayerStateChanged(boolean playWhenReady, int playbackState){
+            if(playWhenReady && playbackState == Player.STATE_ENDED){
+                adjustTrack(AdjustTrack.next);
+            }
+        }
+
+        public void onPositionDiscontinuity(int reason){}
+
+        public void onRepeatModeChanged(int repeatMode){}
+
+        public void onSeekProcessed(){}
+
+        public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled){}
+
+        public void onTimelineChanged(Timeline timeline, @Nullable Object manifest, int reason) {}
+
+        public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections){}
     }
 }
