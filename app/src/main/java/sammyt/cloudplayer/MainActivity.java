@@ -264,8 +264,11 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
     public void onTrackLoaded(Track track){
         Log.d(LOG_TAG, "art url: " + track.getArtworkUrl());
 
-        final String trackArtUrl = track.getArtworkUrl();
-        if(trackArtUrl != null){
+        String rawUrl = track.getArtworkUrl();
+        if(rawUrl != null){
+            //// TODO: Create a helper function to check if path exists and return the largest available image?
+            final String trackArtUrl = rawUrl.replace("large", "t500x500");
+
             // Load the track image
             Picasso.get()
                     .load(trackArtUrl)
