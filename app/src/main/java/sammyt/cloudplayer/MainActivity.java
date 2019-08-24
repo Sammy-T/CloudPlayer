@@ -260,7 +260,7 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         }
     }
 
-    // Player Service Interface
+    // From the Player Service Interface
     public void onTrackLoaded(Track track){
         Log.d(LOG_TAG, "art url: " + track.getArtworkUrl());
 
@@ -314,6 +314,7 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         updateUI();
     }
 
+    // From the Player Service Interface
     public void onPlayback(float duration, float currentPos, float bufferPos){
         int progress = (int) (currentPos / duration * 100);
         int bufferProgress = (int) (bufferPos / duration * 100);

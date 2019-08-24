@@ -2,7 +2,6 @@ package sammyt.cloudplayer;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -10,14 +9,16 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -26,7 +27,6 @@ import androidx.media2.exoplayer.external.ExoPlaybackException;
 import androidx.media2.exoplayer.external.ExoPlayerFactory;
 import androidx.media2.exoplayer.external.PlaybackParameters;
 import androidx.media2.exoplayer.external.Player;
-import androidx.media2.exoplayer.external.Player$EventListener$$CC;
 import androidx.media2.exoplayer.external.SimpleExoPlayer;
 import androidx.media2.exoplayer.external.Timeline;
 import androidx.media2.exoplayer.external.source.MediaSource;
@@ -67,6 +67,10 @@ public class PlayerService extends Service {
     private SimpleExoPlayer mPlayer;
     private DataSource.Factory mDataSourceFactory;
     private Handler mPlaybackHandler = new Handler();
+
+    private AudioManager mAudioManager;
+    private AudioManager.OnAudioFocusChangeListener mFocusListener;
+    private AudioFocusRequest mFocusRequest;
 
     public enum AdjustTrack{
         previous, next
@@ -141,6 +145,74 @@ public class PlayerService extends Service {
                     Util.getUserAgent(mContext, "Cloud Player"));
 
             mPlayer.addListener(new PlayerEventListener());
+
+            initFocus();
+        }
+    }
+
+    // Initializes the Audio Manager, Audio Focus Listener, & Audio Focus Request(Api 26+)
+    private void initFocus(){
+        mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+
+        mFocusListener = new AudioManager.OnAudioFocusChangeListener() {
+            @Override
+            public void onAudioFocusChange(int focusChange) {
+                switch(focusChange){
+                    case AudioManager.AUDIOFOCUS_GAIN:
+                        if(!mIsPlaying){
+                            togglePlay(true);
+                        }
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS:
+                        if(mIsPlaying) {
+                            togglePlay(false);
+                        }
+                        break;
+                        //// TODO: Do I want to implement the other states?
+                }
+            }
+        };
+
+        // Audio Focus Request is only supported on Api 26+
+        if(Build.VERSION.SDK_INT >= 26){
+            AudioAttributes playbackAttr = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build();
+
+            mFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(playbackAttr)
+                    .setOnAudioFocusChangeListener(mFocusListener)
+                    .build();
+        }
+    }
+
+    // Requests audio focus returning whether or not it was granted
+    private boolean requestFocus(){
+        int focusResult;
+
+        if(Build.VERSION.SDK_INT >= 26){
+            focusResult = mAudioManager.requestAudioFocus(mFocusRequest);
+        }else{
+            focusResult = mAudioManager.requestAudioFocus(mFocusListener,
+                    AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+        }
+
+        if(focusResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED){
+            return true;
+        }else{
+            Toast.makeText(mContext, "Unable to get audio focus", Toast.LENGTH_SHORT).show();
+            Log.w(LOG_TAG, "Unable to get audio focus");
+            return false;
+        }
+    }
+
+    // Removes audio focus
+    private void abandonFocus(){
+        if(Build.VERSION.SDK_INT >= 26){
+            mAudioManager.abandonAudioFocusRequest(mFocusRequest);
+        }else{
+            mAudioManager.abandonAudioFocus(mFocusListener);
         }
     }
 
@@ -165,6 +237,11 @@ public class PlayerService extends Service {
     }
 
     public void loadTrack(int trackPos){
+
+        if(!requestFocus()){
+            return; // Return early if we don't have authorization to play
+        }
+
         mCurrentTrack = trackPos;
 
         final Handler handler = new Handler();
@@ -239,6 +316,7 @@ public class PlayerService extends Service {
         mPlayer.seekTo(progressPos);
     }
 
+    // Navigates the player to the previous or next track
     public void adjustTrack(AdjustTrack direction){
         int adjustTrackPos = mCurrentTrack;
 
@@ -265,18 +343,25 @@ public class PlayerService extends Service {
 
     @SuppressLint("RestrictedApi")
     public void togglePlay(boolean play){
-        mIsPlaying = play;
+        // Check if we're trying to start or stop playback
+        if(play){
+            mIsPlaying = requestFocus(); // Check if we have authorization to play
+        }else{
+            mIsPlaying = play;
+        }
         mPlayer.setPlayWhenReady(mIsPlaying);
 
         // Start or stop the playback monitoring depending on whether the track is playing
         if(mIsPlaying){
             mPlaybackHandler.postDelayed(mProgressRunnable, 0);
-            if(mTracks != null) {
-                buildMediaNotification();
-            }
         }else{
             mPlaybackHandler.removeCallbacks(mProgressRunnable);
             stopForeground(false);
+            abandonFocus(); // Remove the audio focus
+        }
+
+        if(mTracks != null) {
+            buildMediaNotification(); // Update the media notification
         }
     }
 
@@ -287,6 +372,8 @@ public class PlayerService extends Service {
 
             mPlayer.setPlayWhenReady(false);
             mPlayer.release();
+
+            abandonFocus(); // Remove the audio focus
         }
     }
 
@@ -407,6 +494,7 @@ public class PlayerService extends Service {
         public void onPlayerError(ExoPlaybackException error){}
 
         public void onPlayerStateChanged(boolean playWhenReady, int playbackState){
+            // Loads the next track when current track has ended
             if(playWhenReady && playbackState == Player.STATE_ENDED){
                 adjustTrack(AdjustTrack.next);
             }
