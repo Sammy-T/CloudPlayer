@@ -5,12 +5,12 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.net.Uri;
-import android.os.Build;
+import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
-import android.view.DragEvent;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -20,9 +20,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+//import com.gauravk.audiovisualizer.visualizer.BarVisualizer;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -33,6 +35,9 @@ import java.util.Locale;
 
 import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
+import me.bogerchan.niervisualizer.NierVisualizerManager;
+import me.bogerchan.niervisualizer.renderer.IRenderer;
+import me.bogerchan.niervisualizer.renderer.columnar.ColumnarType1Renderer;
 
 public class MainActivity extends AppCompatActivity implements PlayerService.PlayerServiceListener {
 
@@ -48,6 +53,8 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
 
     private boolean mIsDragging = false;
 
+//    private BarVisualizer mVisualizer;
+    private SurfaceView mSurface;
     private ImageView mImageView;
     private TextView mInfoView;
     private SeekBar mSeekBar;
@@ -55,6 +62,8 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
     private Button mPlay;
     private RecyclerView mTrackRecycler;
     private ProgressBar mLoading;
+
+    private NierVisualizerManager mVisualizerManager;
 
     private enum VisibleView{
         recycler, loading
@@ -66,6 +75,8 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+//        mVisualizer = findViewById(R.id.visualizer);
+        mSurface = findViewById(R.id.surface);
         mImageView = findViewById(R.id.track_image);
         mInfoView = findViewById(R.id.track_info);
         mSeekBar = findViewById(R.id.track_seekbar);
@@ -75,6 +86,9 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         Button next = findViewById(R.id.next);
         mTrackRecycler = findViewById(R.id.track_recycler);
         mLoading = findViewById(R.id.loading);
+
+        mSurface.setZOrderOnTop(true);
+        mSurface.getHolder().setFormat(PixelFormat.TRANSLUCENT);
 
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -145,6 +159,10 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         super.onResume();
 
         init();
+
+        if(mVisualizerManager != null && mService.isPlaying()){
+            mVisualizerManager.resume();
+        }
     }
 
     @SuppressLint("RestrictedApi")
@@ -162,13 +180,15 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
             mBound = false;
         }
 
+        if(mVisualizerManager != null){
+            mVisualizerManager.pause();
+        }
+
         super.onPause();
     }
 
     @Override
     public void onDestroy(){
-        super.onDestroy();
-
         // The activity is being destroyed,
         // release the player & unbind the service
         if(mBound) {
@@ -176,6 +196,13 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
 
             unbindService(mConnection);
         }
+
+        if(mVisualizerManager != null) {
+            mVisualizerManager.stop();
+            mVisualizerManager.release();
+        }
+
+        super.onDestroy();
     }
 
     private void init(){
@@ -334,6 +361,33 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         String timeText = currentText + " / " + durationText;
 
         mTrackTime.setText(timeText);
+    }
+
+    //// TODO: Check & Request record permission
+    // From the Player Service Interface
+    public void onSessionId(int sessionId){
+
+        if(mVisualizerManager != null){
+            mVisualizerManager.stop();
+            mVisualizerManager.release();
+        }
+
+        Log.d(LOG_TAG, "onSessionId: " + sessionId);
+
+        mVisualizerManager = new NierVisualizerManager();
+
+        int state = mVisualizerManager.init(sessionId);
+        if (NierVisualizerManager.SUCCESS != state) {
+            Log.e(LOG_TAG, "Error initializing visualizer manager");
+            return;
+        }
+        Log.d(LOG_TAG, "state: " + state);
+
+        Paint visPaint = new Paint();
+        visPaint.setColor(ContextCompat.getColor(this, R.color.colorAccent));
+        visPaint.setAlpha(150);
+
+        mVisualizerManager.start(mSurface, new IRenderer[]{new ColumnarType1Renderer(visPaint)});
     }
 
     // Player Service Connection

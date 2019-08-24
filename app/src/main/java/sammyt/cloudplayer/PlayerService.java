@@ -18,6 +18,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.Surface;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -25,11 +26,16 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.media2.exoplayer.external.ExoPlaybackException;
 import androidx.media2.exoplayer.external.ExoPlayerFactory;
+import androidx.media2.exoplayer.external.Format;
 import androidx.media2.exoplayer.external.PlaybackParameters;
 import androidx.media2.exoplayer.external.Player;
 import androidx.media2.exoplayer.external.SimpleExoPlayer;
 import androidx.media2.exoplayer.external.Timeline;
+import androidx.media2.exoplayer.external.analytics.AnalyticsListener;
+import androidx.media2.exoplayer.external.decoder.DecoderCounters;
+import androidx.media2.exoplayer.external.metadata.Metadata;
 import androidx.media2.exoplayer.external.source.MediaSource;
+import androidx.media2.exoplayer.external.source.MediaSourceEventListener;
 import androidx.media2.exoplayer.external.source.ProgressiveMediaSource;
 import androidx.media2.exoplayer.external.source.TrackGroupArray;
 import androidx.media2.exoplayer.external.trackselection.TrackSelectionArray;
@@ -67,6 +73,7 @@ public class PlayerService extends Service {
     private SimpleExoPlayer mPlayer;
     private DataSource.Factory mDataSourceFactory;
     private Handler mPlaybackHandler = new Handler();
+//    private int mSessionId;
 
     private AudioManager mAudioManager;
     private AudioManager.OnAudioFocusChangeListener mFocusListener;
@@ -131,6 +138,7 @@ public class PlayerService extends Service {
     public interface PlayerServiceListener{
         void onTrackLoaded(Track track);
         void onPlayback(float duration, float currentPos, float bufferPos);
+        void onSessionId(int sessionId);
     }
 
     public void setPlayerServiceListener(PlayerServiceListener l){
@@ -144,7 +152,9 @@ public class PlayerService extends Service {
             mDataSourceFactory = new DefaultDataSourceFactory(mContext,
                     Util.getUserAgent(mContext, "Cloud Player"));
 
-            mPlayer.addListener(new PlayerEventListener());
+//            mPlayer.addListener(new PlayerEventListener());
+
+            mPlayer.addAnalyticsListener(new PlayerAnalyticsListener());
 
             initFocus();
         }
@@ -440,7 +450,6 @@ public class PlayerService extends Service {
                 // Set this as a Media Style notification with 3 actions visible in its compact mode
                 notifyBuilder.setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
                         .setShowActionsInCompactView(0, 1, 2)); // The indices of the actions. Can use up to 3 actions
-                //// TODO: Try to get media session from player?
 
                 startForeground(111, notifyBuilder.build());
             }
@@ -485,31 +494,225 @@ public class PlayerService extends Service {
         return PendingIntent.getService(mContext, requestCode, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
-    class PlayerEventListener implements Player.EventListener{
-
-        public void onLoadingChanged(boolean isLoading){}
-
-        public void onPlaybackParametersChanged(PlaybackParameters playbackParameters){}
-
-        public void onPlayerError(ExoPlaybackException error){}
-
-        public void onPlayerStateChanged(boolean playWhenReady, int playbackState){
+    @SuppressLint("RestrictedApi")
+    class PlayerAnalyticsListener implements AnalyticsListener{
+        
+        public void onPlayerStateChanged(EventTime eventTime, boolean playWhenReady, int playbackState) {
             // Loads the next track when current track has ended
             if(playWhenReady && playbackState == Player.STATE_ENDED){
                 adjustTrack(AdjustTrack.next);
             }
         }
 
-        public void onPositionDiscontinuity(int reason){}
+        
+        public void onTimelineChanged(EventTime eventTime, int reason) {
 
-        public void onRepeatModeChanged(int repeatMode){}
+        }
 
-        public void onSeekProcessed(){}
+        
+        public void onPositionDiscontinuity(EventTime eventTime, int reason) {
 
-        public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled){}
+        }
 
-        public void onTimelineChanged(Timeline timeline, @Nullable Object manifest, int reason) {}
+        
+        public void onSeekStarted(EventTime eventTime) {
 
-        public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections){}
+        }
+
+        
+        public void onSeekProcessed(EventTime eventTime) {
+
+        }
+
+        
+        public void onPlaybackParametersChanged(EventTime eventTime, PlaybackParameters playbackParameters) {
+
+        }
+
+        
+        public void onRepeatModeChanged(EventTime eventTime, int repeatMode) {
+
+        }
+
+        
+        public void onShuffleModeChanged(EventTime eventTime, boolean shuffleModeEnabled) {
+
+        }
+
+        
+        public void onLoadingChanged(EventTime eventTime, boolean isLoading) {
+
+        }
+
+        
+        public void onPlayerError(EventTime eventTime, ExoPlaybackException error) {
+
+        }
+
+        
+        public void onTracksChanged(EventTime eventTime, TrackGroupArray trackGroups,
+                                    TrackSelectionArray trackSelections) {
+
+        }
+
+        
+        public void onLoadStarted(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
+                                  MediaSourceEventListener.MediaLoadData mediaLoadData) {
+
+        }
+
+        
+        public void onLoadCompleted(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
+                                    MediaSourceEventListener.MediaLoadData mediaLoadData) {
+
+        }
+
+        
+        public void onLoadCanceled(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
+                                   MediaSourceEventListener.MediaLoadData mediaLoadData) {
+
+        }
+
+        
+        public void onLoadError(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
+                                MediaSourceEventListener.MediaLoadData mediaLoadData, IOException error,
+                                boolean wasCanceled) {
+
+        }
+
+        
+        public void onDownstreamFormatChanged(EventTime eventTime,
+                                              MediaSourceEventListener.MediaLoadData mediaLoadData) {
+
+        }
+
+        
+        public void onUpstreamDiscarded(EventTime eventTime, MediaSourceEventListener.MediaLoadData mediaLoadData) {
+
+        }
+
+        
+        public void onMediaPeriodCreated(EventTime eventTime) {
+
+        }
+
+        
+        public void onMediaPeriodReleased(EventTime eventTime) {
+
+        }
+
+        
+        public void onReadingStarted(EventTime eventTime) {
+
+        }
+
+        
+        public void onBandwidthEstimate(EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded,
+                                        long bitrateEstimate) {
+
+        }
+
+        
+        public void onSurfaceSizeChanged(EventTime eventTime, int width, int height) {
+
+        }
+
+        
+        public void onMetadata(EventTime eventTime, Metadata metadata) {
+
+        }
+
+        
+        public void onDecoderEnabled(EventTime eventTime, int trackType, DecoderCounters decoderCounters) {
+
+        }
+
+        
+        public void onDecoderInitialized(EventTime eventTime, int trackType, String decoderName,
+                                         long initializationDurationMs) {
+
+        }
+
+        
+        public void onDecoderInputFormatChanged(EventTime eventTime, int trackType, Format format) {
+
+        }
+
+        
+        public void onDecoderDisabled(EventTime eventTime, int trackType, DecoderCounters decoderCounters) {
+
+        }
+
+        
+        public void onAudioSessionId(EventTime eventTime, int audioSessionId) {
+            Log.d(LOG_TAG, "Audio session id: " + audioSessionId);
+//            mSessionId = audioSessionId;
+            if(mListener != null){
+                mListener.onSessionId(audioSessionId);
+            }
+        }
+
+        
+        public void onAudioAttributesChanged(EventTime eventTime,
+                                             androidx.media2.exoplayer.external.audio.AudioAttributes audioAttributes) {
+
+        }
+
+        
+        public void onVolumeChanged(EventTime eventTime, float volume) {
+
+        }
+
+        
+        public void onAudioUnderrun(EventTime eventTime, int bufferSize, long bufferSizeMs,
+                                    long elapsedSinceLastFeedMs) {
+
+        }
+
+        
+        public void onDroppedVideoFrames(EventTime eventTime, int droppedFrames, long elapsedMs) {
+
+        }
+
+        
+        public void onVideoSizeChanged(EventTime eventTime, int width, int height,
+                                       int unappliedRotationDegrees, float pixelWidthHeightRatio) {
+
+        }
+
+        
+        public void onRenderedFirstFrame(EventTime eventTime, @Nullable Surface surface) {
+
+        }
+
+        
+        public void onDrmSessionAcquired(EventTime eventTime) {
+
+        }
+
+        
+        public void onDrmKeysLoaded(EventTime eventTime) {
+
+        }
+
+        
+        public void onDrmSessionManagerError(EventTime eventTime, Exception error) {
+
+        }
+
+        
+        public void onDrmKeysRestored(EventTime eventTime) {
+
+        }
+
+        
+        public void onDrmKeysRemoved(EventTime eventTime) {
+
+        }
+
+        
+        public void onDrmSessionReleased(EventTime eventTime) {
+
+        }
     }
 }
