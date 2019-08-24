@@ -73,7 +73,7 @@ public class PlayerService extends Service {
     private SimpleExoPlayer mPlayer;
     private DataSource.Factory mDataSourceFactory;
     private Handler mPlaybackHandler = new Handler();
-//    private int mSessionId;
+    private int mSessionId;
 
     private AudioManager mAudioManager;
     private AudioManager.OnAudioFocusChangeListener mFocusListener;
@@ -151,8 +151,6 @@ public class PlayerService extends Service {
             mPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
             mDataSourceFactory = new DefaultDataSourceFactory(mContext,
                     Util.getUserAgent(mContext, "Cloud Player"));
-
-//            mPlayer.addListener(new PlayerEventListener());
 
             mPlayer.addAnalyticsListener(new PlayerAnalyticsListener());
 
@@ -244,6 +242,10 @@ public class PlayerService extends Service {
 
     public boolean isPlaying(){
         return mIsPlaying;
+    }
+
+    public int getSessionId(){
+        return mSessionId;
     }
 
     public void loadTrack(int trackPos){
@@ -361,6 +363,10 @@ public class PlayerService extends Service {
         }
         mPlayer.setPlayWhenReady(mIsPlaying);
 
+        if(mTracks != null) {
+            buildMediaNotification(); // Update the media notification
+        }
+
         // Start or stop the playback monitoring depending on whether the track is playing
         if(mIsPlaying){
             mPlaybackHandler.postDelayed(mProgressRunnable, 0);
@@ -368,10 +374,6 @@ public class PlayerService extends Service {
             mPlaybackHandler.removeCallbacks(mProgressRunnable);
             stopForeground(false);
             abandonFocus(); // Remove the audio focus
-        }
-
-        if(mTracks != null) {
-            buildMediaNotification(); // Update the media notification
         }
     }
 
@@ -437,15 +439,15 @@ public class PlayerService extends Service {
                 PendingIntent playPendingIntent = createActionPendingIntent(PLAYER_ACTION_PLAY_PAUSE);
                 PendingIntent nextPendingIntent = createActionPendingIntent(PLAYER_ACTION_NEXT);
 
-                int playOrPauseIcon = R.drawable.play;
+                int playOrPauseIcon = R.drawable.ic_play_black_24dp;
 
                 if(mIsPlaying){
-                    playOrPauseIcon = R.drawable.pause;
+                    playOrPauseIcon = R.drawable.ic_pause_black_24dp;
                 }
 
-                notifyBuilder.addAction(R.drawable.skip_previous, "Previous", previousPendingIntent); // #0
+                notifyBuilder.addAction(R.drawable.ic_skip_previous_black_24dp, "Previous", previousPendingIntent); // #0
                 notifyBuilder.addAction(playOrPauseIcon, "Play", playPendingIntent); // #1
-                notifyBuilder.addAction(R.drawable.skip_next, "Next", nextPendingIntent); // # 2
+                notifyBuilder.addAction(R.drawable.ic_skip_next_black_24dp, "Next", nextPendingIntent); // # 2
 
                 // Set this as a Media Style notification with 3 actions visible in its compact mode
                 notifyBuilder.setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
@@ -504,215 +506,101 @@ public class PlayerService extends Service {
             }
         }
 
-        
-        public void onTimelineChanged(EventTime eventTime, int reason) {
+        public void onTimelineChanged(EventTime eventTime, int reason) { }
 
-        }
+        public void onPositionDiscontinuity(EventTime eventTime, int reason) { }
 
-        
-        public void onPositionDiscontinuity(EventTime eventTime, int reason) {
+        public void onSeekStarted(EventTime eventTime) { }
 
-        }
+        public void onSeekProcessed(EventTime eventTime) { }
 
-        
-        public void onSeekStarted(EventTime eventTime) {
+        public void onPlaybackParametersChanged(EventTime eventTime, PlaybackParameters playbackParameters) { }
 
-        }
+        public void onRepeatModeChanged(EventTime eventTime, int repeatMode) { }
 
-        
-        public void onSeekProcessed(EventTime eventTime) {
+        public void onShuffleModeChanged(EventTime eventTime, boolean shuffleModeEnabled) { }
 
-        }
+        public void onLoadingChanged(EventTime eventTime, boolean isLoading) { }
 
-        
-        public void onPlaybackParametersChanged(EventTime eventTime, PlaybackParameters playbackParameters) {
+        public void onPlayerError(EventTime eventTime, ExoPlaybackException error) { }
 
-        }
-
-        
-        public void onRepeatModeChanged(EventTime eventTime, int repeatMode) {
-
-        }
-
-        
-        public void onShuffleModeChanged(EventTime eventTime, boolean shuffleModeEnabled) {
-
-        }
-
-        
-        public void onLoadingChanged(EventTime eventTime, boolean isLoading) {
-
-        }
-
-        
-        public void onPlayerError(EventTime eventTime, ExoPlaybackException error) {
-
-        }
-
-        
         public void onTracksChanged(EventTime eventTime, TrackGroupArray trackGroups,
-                                    TrackSelectionArray trackSelections) {
+                                    TrackSelectionArray trackSelections) { }
 
-        }
-
-        
         public void onLoadStarted(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
-                                  MediaSourceEventListener.MediaLoadData mediaLoadData) {
+                                  MediaSourceEventListener.MediaLoadData mediaLoadData) { }
 
-        }
-
-        
         public void onLoadCompleted(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
-                                    MediaSourceEventListener.MediaLoadData mediaLoadData) {
+                                    MediaSourceEventListener.MediaLoadData mediaLoadData) { }
 
-        }
-
-        
         public void onLoadCanceled(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
-                                   MediaSourceEventListener.MediaLoadData mediaLoadData) {
+                                   MediaSourceEventListener.MediaLoadData mediaLoadData) { }
 
-        }
-
-        
         public void onLoadError(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
                                 MediaSourceEventListener.MediaLoadData mediaLoadData, IOException error,
-                                boolean wasCanceled) {
+                                boolean wasCanceled) { }
 
-        }
-
-        
         public void onDownstreamFormatChanged(EventTime eventTime,
-                                              MediaSourceEventListener.MediaLoadData mediaLoadData) {
+                                              MediaSourceEventListener.MediaLoadData mediaLoadData) { }
 
-        }
+        public void onUpstreamDiscarded(EventTime eventTime, MediaSourceEventListener.MediaLoadData mediaLoadData) { }
 
-        
-        public void onUpstreamDiscarded(EventTime eventTime, MediaSourceEventListener.MediaLoadData mediaLoadData) {
+        public void onMediaPeriodCreated(EventTime eventTime) { }
 
-        }
+        public void onMediaPeriodReleased(EventTime eventTime) { }
 
-        
-        public void onMediaPeriodCreated(EventTime eventTime) {
+        public void onReadingStarted(EventTime eventTime) { }
 
-        }
-
-        
-        public void onMediaPeriodReleased(EventTime eventTime) {
-
-        }
-
-        
-        public void onReadingStarted(EventTime eventTime) {
-
-        }
-
-        
         public void onBandwidthEstimate(EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded,
-                                        long bitrateEstimate) {
+                                        long bitrateEstimate) { }
 
-        }
+        public void onSurfaceSizeChanged(EventTime eventTime, int width, int height) { }
 
-        
-        public void onSurfaceSizeChanged(EventTime eventTime, int width, int height) {
+        public void onMetadata(EventTime eventTime, Metadata metadata) { }
 
-        }
+        public void onDecoderEnabled(EventTime eventTime, int trackType, DecoderCounters decoderCounters) { }
 
-        
-        public void onMetadata(EventTime eventTime, Metadata metadata) {
-
-        }
-
-        
-        public void onDecoderEnabled(EventTime eventTime, int trackType, DecoderCounters decoderCounters) {
-
-        }
-
-        
         public void onDecoderInitialized(EventTime eventTime, int trackType, String decoderName,
-                                         long initializationDurationMs) {
+                                         long initializationDurationMs) { }
 
-        }
+        public void onDecoderInputFormatChanged(EventTime eventTime, int trackType, Format format) { }
 
-        
-        public void onDecoderInputFormatChanged(EventTime eventTime, int trackType, Format format) {
+        public void onDecoderDisabled(EventTime eventTime, int trackType, DecoderCounters decoderCounters) { }
 
-        }
-
-        
-        public void onDecoderDisabled(EventTime eventTime, int trackType, DecoderCounters decoderCounters) {
-
-        }
-
-        
         public void onAudioSessionId(EventTime eventTime, int audioSessionId) {
             Log.d(LOG_TAG, "Audio session id: " + audioSessionId);
-//            mSessionId = audioSessionId;
+            mSessionId = audioSessionId;
+
             if(mListener != null){
                 mListener.onSessionId(audioSessionId);
             }
         }
 
-        
         public void onAudioAttributesChanged(EventTime eventTime,
-                                             androidx.media2.exoplayer.external.audio.AudioAttributes audioAttributes) {
+                                             androidx.media2.exoplayer.external.audio.AudioAttributes audioAttributes) { }
 
-        }
+        public void onVolumeChanged(EventTime eventTime, float volume) { }
 
-        
-        public void onVolumeChanged(EventTime eventTime, float volume) {
-
-        }
-
-        
         public void onAudioUnderrun(EventTime eventTime, int bufferSize, long bufferSizeMs,
-                                    long elapsedSinceLastFeedMs) {
+                                    long elapsedSinceLastFeedMs) { }
 
-        }
+        public void onDroppedVideoFrames(EventTime eventTime, int droppedFrames, long elapsedMs) { }
 
-        
-        public void onDroppedVideoFrames(EventTime eventTime, int droppedFrames, long elapsedMs) {
-
-        }
-
-        
         public void onVideoSizeChanged(EventTime eventTime, int width, int height,
-                                       int unappliedRotationDegrees, float pixelWidthHeightRatio) {
+                                       int unappliedRotationDegrees, float pixelWidthHeightRatio) { }
 
-        }
+        public void onRenderedFirstFrame(EventTime eventTime, @Nullable Surface surface) { }
 
-        
-        public void onRenderedFirstFrame(EventTime eventTime, @Nullable Surface surface) {
+        public void onDrmSessionAcquired(EventTime eventTime) { }
 
-        }
+        public void onDrmKeysLoaded(EventTime eventTime) { }
 
-        
-        public void onDrmSessionAcquired(EventTime eventTime) {
+        public void onDrmSessionManagerError(EventTime eventTime, Exception error) { }
 
-        }
+        public void onDrmKeysRestored(EventTime eventTime) { }
 
-        
-        public void onDrmKeysLoaded(EventTime eventTime) {
+        public void onDrmKeysRemoved(EventTime eventTime) { }
 
-        }
-
-        
-        public void onDrmSessionManagerError(EventTime eventTime, Exception error) {
-
-        }
-
-        
-        public void onDrmKeysRestored(EventTime eventTime) {
-
-        }
-
-        
-        public void onDrmKeysRemoved(EventTime eventTime) {
-
-        }
-
-        
-        public void onDrmSessionReleased(EventTime eventTime) {
-
-        }
+        public void onDrmSessionReleased(EventTime eventTime) { }
     }
 }

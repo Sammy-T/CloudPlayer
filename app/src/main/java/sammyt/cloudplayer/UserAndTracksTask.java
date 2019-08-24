@@ -66,10 +66,16 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
 
         Log.d(LOG_TAG, "favorites count: " + count + " favorites pages: " + pages);
 
-        for(int i=0; i < pages; i++){
-            ArrayList<Track> tempTracks = soundCloud.getMeFavorites(i*limit, limit);
-            SystemClock.sleep(500);
-            mFaveTracks.addAll(tempTracks);
+        try {
+            for(int i = 0; i < pages; i++) {
+                ArrayList<Track> tempTracks = soundCloud.getMeFavorites(i * limit, limit);
+                SystemClock.sleep(500);
+                mFaveTracks.addAll(tempTracks);
+            }
+        }catch(NullPointerException e){
+            Log.e(LOG_TAG, "Error getting favorites.", e);
+            cancel(true);
+            return null;
         }
 
         return null;

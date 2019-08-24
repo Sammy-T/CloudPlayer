@@ -1,10 +1,12 @@
 package sammyt.cloudplayer;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.os.Bundle;
@@ -19,12 +21,14 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-//import com.gauravk.audiovisualizer.visualizer.BarVisualizer;
+import com.google.android.material.snackbar.Snackbar;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -43,6 +47,8 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
+    private static final int PERMISSION_REQ_REC_AUDIO = 819;
+
     private TrackAdapter mAdapter;
 
     private User mUser;
@@ -53,7 +59,6 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
 
     private boolean mIsDragging = false;
 
-//    private BarVisualizer mVisualizer;
     private SurfaceView mSurface;
     private ImageView mImageView;
     private TextView mInfoView;
@@ -75,7 +80,6 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        mVisualizer = findViewById(R.id.visualizer);
         mSurface = findViewById(R.id.surface);
         mImageView = findViewById(R.id.track_image);
         mInfoView = findViewById(R.id.track_info);
@@ -157,6 +161,21 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
     @Override
     public void onResume(){
         super.onResume();
+
+        if(!checkPermission(Manifest.permission.RECORD_AUDIO)){
+            String message = "Record Permission required for audio visualization";
+            String action = "Allow";
+
+            Snackbar snackbar = Snackbar.make(mSurface, message, Snackbar.LENGTH_INDEFINITE);
+            snackbar.setAction(action, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    ActivityCompat.requestPermissions(MainActivity.this,
+                            new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQ_REC_AUDIO);
+                }
+            });
+            snackbar.show();
+        }
 
         init();
 
@@ -341,6 +360,37 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         updateUI();
     }
 
+    private void initVisualizer(int sessionId){
+        if(mVisualizerManager != null){
+            mVisualizerManager.stop();
+            mVisualizerManager.release();
+        }
+
+        mVisualizerManager = new NierVisualizerManager();
+
+        int state = mVisualizerManager.init(sessionId);
+        if (NierVisualizerManager.SUCCESS != state) {
+            Log.e(LOG_TAG, "Error initializing visualizer manager");
+            return;
+        }
+        Log.d(LOG_TAG, "state: " + state);
+
+        Paint visPaint = new Paint();
+        visPaint.setColor(ContextCompat.getColor(this, R.color.colorAccent));
+        visPaint.setAlpha(150);
+
+        mVisualizerManager.start(mSurface, new IRenderer[]{new ColumnarType1Renderer(visPaint)});
+    }
+
+    private boolean checkPermission(String permission){
+        if(ContextCompat.checkSelfPermission(this, permission) ==
+                PackageManager.PERMISSION_GRANTED){
+            return true; // Permission granted
+        }
+        Log.w(LOG_TAG, "Permission not granted: " + permission);
+        return false;
+    }
+
     // From the Player Service Interface
     public void onPlayback(float duration, float currentPos, float bufferPos){
         int progress = (int) (currentPos / duration * 100);
@@ -366,28 +416,11 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
     //// TODO: Check & Request record permission
     // From the Player Service Interface
     public void onSessionId(int sessionId){
-
-        if(mVisualizerManager != null){
-            mVisualizerManager.stop();
-            mVisualizerManager.release();
-        }
-
         Log.d(LOG_TAG, "onSessionId: " + sessionId);
 
-        mVisualizerManager = new NierVisualizerManager();
-
-        int state = mVisualizerManager.init(sessionId);
-        if (NierVisualizerManager.SUCCESS != state) {
-            Log.e(LOG_TAG, "Error initializing visualizer manager");
-            return;
+        if(checkPermission(Manifest.permission.RECORD_AUDIO)) {
+            initVisualizer(sessionId);
         }
-        Log.d(LOG_TAG, "state: " + state);
-
-        Paint visPaint = new Paint();
-        visPaint.setColor(ContextCompat.getColor(this, R.color.colorAccent));
-        visPaint.setAlpha(150);
-
-        mVisualizerManager.start(mSurface, new IRenderer[]{new ColumnarType1Renderer(visPaint)});
     }
 
     // Player Service Connection
@@ -415,4 +448,22 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
             Log.d(LOG_TAG, "service disconnected");
         }
     };
+
+    // Request Permission Callback
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permission,
+                                          @NonNull int[] grantResults){
+        switch(requestCode){
+            case PERMISSION_REQ_REC_AUDIO:
+                // If the request is cancelled, the result arrays are empty
+                if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                    Log.d(LOG_TAG, "Record Permission Granted");
+
+                    if(mBound){
+                        initVisualizer(mService.getSessionId());
+                    }
+                }
+                break;
+        }
+    }
 }
