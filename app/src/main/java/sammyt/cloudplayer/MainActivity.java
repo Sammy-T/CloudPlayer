@@ -413,7 +413,6 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         mTrackTime.setText(timeText);
     }
 
-    //// TODO: Check & Request record permission
     // From the Player Service Interface
     public void onSessionId(int sessionId){
         Log.d(LOG_TAG, "onSessionId: " + sessionId);

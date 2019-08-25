@@ -44,8 +44,6 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
 
         SoundCloud soundCloud = new SoundCloud(mClientId, mClientSecret);
         Log.d(LOG_TAG, "SoundCloud: " + soundCloud);
-//        SystemClock.sleep(2000);
-        //// TODO: Let's see if this delay makes login more reliable before adding cancel/error handling
 
         boolean loginSuccess = soundCloud.login(mLoginName, mPassword);
         Log.d(LOG_TAG, "login success: " + loginSuccess);

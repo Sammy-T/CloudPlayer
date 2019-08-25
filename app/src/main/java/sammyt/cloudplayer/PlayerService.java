@@ -30,7 +30,6 @@ import androidx.media2.exoplayer.external.Format;
 import androidx.media2.exoplayer.external.PlaybackParameters;
 import androidx.media2.exoplayer.external.Player;
 import androidx.media2.exoplayer.external.SimpleExoPlayer;
-import androidx.media2.exoplayer.external.Timeline;
 import androidx.media2.exoplayer.external.analytics.AnalyticsListener;
 import androidx.media2.exoplayer.external.decoder.DecoderCounters;
 import androidx.media2.exoplayer.external.metadata.Metadata;
