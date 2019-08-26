@@ -24,7 +24,8 @@
         android:id="@+id/track_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
+        android:background="@color/colorBg"
+        android:textColor="#FFFFFF"
         android:textAlignment="center"
         android:text="Track Info"
         app:layout_constraintBottom_toTopOf="@id/track_seekbar"/>
@@ -38,6 +39,7 @@
         android:id="@+id/track_time"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textColor="#FFFFFF"
         android:textAlignment="center"
         android:text="Track time"
         app:layout_constraintBottom_toTopOf="@id/button_area"/>
