@@ -94,6 +94,16 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         mSurface.setZOrderOnTop(true);
         mSurface.getHolder().setFormat(PixelFormat.TRANSLUCENT);
 
+        //// TODO: TEMP
+        mSurface.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, NavActivity.class);
+                startActivity(intent);
+            }
+        });
+        ////
+
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {

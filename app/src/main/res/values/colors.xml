@@ -5,9 +5,12 @@
 <!--    <color name="colorAccent">#D81B60</color>-->
 
     <!-- TODO: Finalize? -->
-    <color name="colorPrimary">#3f51b5</color>
-    <color name="colorPrimaryDark">#002984</color>
-    <color name="colorAccent">#7b1fa2</color>
+    <color name="colorPrimary">#ce93d8</color>
+    <color name="colorPrimaryDark">#9c64a6</color>
+    <color name="colorAccent">#6EA664</color>
 <!--    <color name="colorBg">#424242</color>-->
     <color name="colorBg">#121212</color>
+    <color name="colorBgLight">#404040</color>
+    <color name="colorText">#FFFFFF</color>
+    <color name="colorTextMenu">#CCCCCC</color>
 </resources>

@@ -58,7 +58,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Prev"
-            style="@style/Widget.AppCompat.Button.Borderless.Colored" />
+            style="@style/ButtonBorderlessColored" />
         <Button
             android:id="@+id/play"
             android:layout_width="wrap_content"
@@ -70,7 +70,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Next"
-            style="@style/Widget.AppCompat.Button.Borderless.Colored" />
+            style="@style/ButtonBorderlessColored" />
     </LinearLayout>
     <FrameLayout
         android:layout_width="match_parent"
