@@ -1,4 +1,4 @@
-package sammyt.cloudplayer.ui.dashboard;
+package sammyt.cloudplayer.ui.artists;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -14,21 +14,24 @@ import androidx.lifecycle.ViewModelProviders;
 
 import sammyt.cloudplayer.R;
 
-public class DashboardFragment extends Fragment {
+public class ArtistsFragment extends Fragment {
 
-    private DashboardViewModel dashboardViewModel;
+    private ArtistsViewModel artistsViewModel;
 
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
-        dashboardViewModel = ViewModelProviders.of(this).get(DashboardViewModel.class);
-        View root = inflater.inflate(R.layout.fragment_dashboard, container, false);
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+
+        artistsViewModel = ViewModelProviders.of(this).get(ArtistsViewModel.class);
+
+        View root = inflater.inflate(R.layout.fragment_artists, container, false);
+
         final TextView textView = root.findViewById(R.id.text_dashboard);
-        dashboardViewModel.getText().observe(this, new Observer<String>() {
+        artistsViewModel.getText().observe(this, new Observer<String>() {
             @Override
             public void onChanged(@Nullable String s) {
                 textView.setText(s);
             }
         });
+
         return root;
     }
 }

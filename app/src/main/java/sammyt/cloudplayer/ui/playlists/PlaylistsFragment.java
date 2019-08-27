@@ -1,4 +1,4 @@
-package sammyt.cloudplayer.ui.notifications;
+package sammyt.cloudplayer.ui.playlists;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -14,21 +14,24 @@ import androidx.lifecycle.ViewModelProviders;
 
 import sammyt.cloudplayer.R;
 
-public class NotificationsFragment extends Fragment {
+public class PlaylistsFragment extends Fragment {
 
-    private NotificationsViewModel notificationsViewModel;
+    private PlaylistsViewModel playlistsViewModel;
 
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
-        notificationsViewModel = ViewModelProviders.of(this).get(NotificationsViewModel.class);
-        View root = inflater.inflate(R.layout.fragment_notifications, container, false);
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+
+        playlistsViewModel = ViewModelProviders.of(this).get(PlaylistsViewModel.class);
+
+        View root = inflater.inflate(R.layout.fragment_playlists, container, false);
+
         final TextView textView = root.findViewById(R.id.text_notifications);
-        notificationsViewModel.getText().observe(this, new Observer<String>() {
+        playlistsViewModel.getText().observe(this, new Observer<String>() {
             @Override
             public void onChanged(@Nullable String s) {
                 textView.setText(s);
             }
         });
+
         return root;
     }
 }

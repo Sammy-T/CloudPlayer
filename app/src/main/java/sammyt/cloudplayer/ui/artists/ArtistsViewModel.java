@@ -1,16 +1,16 @@
-package sammyt.cloudplayer.ui.dashboard;
+package sammyt.cloudplayer.ui.artists;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-public class DashboardViewModel extends ViewModel {
+public class ArtistsViewModel extends ViewModel {
 
     private MutableLiveData<String> mText;
 
-    public DashboardViewModel() {
+    public ArtistsViewModel() {
         mText = new MutableLiveData<>();
-        mText.setValue("This is dashboard fragment");
+        mText.setValue("This is artists fragment");
     }
 
     public LiveData<String> getText() {
