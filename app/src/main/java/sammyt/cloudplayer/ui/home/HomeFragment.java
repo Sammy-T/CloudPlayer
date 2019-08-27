@@ -5,6 +5,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -27,8 +30,14 @@ public class HomeFragment extends Fragment {
 
     private HomeViewModel homeViewModel;
 
+    private ProgressBar mLoadingView;
+    private LinearLayout mErrorView;
     private RecyclerView mTrackRecycler;
     private TrackAdapter mAdapter;
+
+    private enum VisibleView{
+        loading, loaded, error
+    }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
@@ -36,6 +45,9 @@ public class HomeFragment extends Fragment {
 
         View root = inflater.inflate(R.layout.fragment_home, container, false);
         mTrackRecycler = root.findViewById(R.id.liked_tracks_recycler);
+        mLoadingView = root.findViewById(R.id.loading);
+        mErrorView = root.findViewById(R.id.error);
+        Button retryLoading = root.findViewById(R.id.retry_liked);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
         mTrackRecycler.setLayoutManager(layoutManager);
@@ -47,6 +59,8 @@ public class HomeFragment extends Fragment {
 
                 if(tracks == null){
                     loadTrackData();
+                }else{
+                    setVisibleView(VisibleView.loaded);
                 }
 
                 if(mAdapter == null){
@@ -64,6 +78,15 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        // The button shown if the data fails to load
+        // Allows the user to manually retry loading the data
+        retryLoading.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                loadTrackData();
+            }
+        });
+
         return root;
     }
 
@@ -77,6 +100,8 @@ public class HomeFragment extends Fragment {
 
     private void loadTrackData(){
         Log.d(LOG_TAG, "Load track data");
+        
+        setVisibleView(VisibleView.loading);
 
         UserAndTracksTask trackDataTask = new UserAndTracksTask(
                 getString(R.string.client_id),
@@ -93,8 +118,30 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void onFailure() {
-                //// TODO: Try loading from the service
+                setVisibleView(VisibleView.error);
             }
         });
+    }
+
+    private void setVisibleView(VisibleView visibleView){
+        switch(visibleView){
+            case loading:
+                mLoadingView.setVisibility(View.VISIBLE);
+                mTrackRecycler.setVisibility(View.GONE);
+                mErrorView.setVisibility(View.GONE);
+                break;
+
+            case loaded:
+                mLoadingView.setVisibility(View.GONE);
+                mTrackRecycler.setVisibility(View.VISIBLE);
+                mErrorView.setVisibility(View.GONE);
+                break;
+
+            case error:
+                mLoadingView.setVisibility(View.GONE);
+                mTrackRecycler.setVisibility(View.GONE);
+                mErrorView.setVisibility(View.VISIBLE);
+                break;
+        }
     }
 }
