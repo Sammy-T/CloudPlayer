@@ -95,7 +95,8 @@ public class HomeFragment extends Fragment {
         @Override
         public void onTrackClick(int position, Track track) {
             Log.d(LOG_TAG, "Track Clicked - " + position + " " + track.getTitle() + " " + track);
-            //// TODO: Load the track in the service
+            //// TODO: Set the Service's track list, Load the track
+            //// TODO: Store the current track in a shared view model?
         }
     };
 

@@ -1,7 +1,6 @@
 package sammyt.cloudplayer;
 
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -83,6 +82,8 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
         holder.trackArtist.setText(artist);
 
         if(trackImage != null){
+            holder.trackImage.setVisibility(View.VISIBLE);
+
             // Request measuring of the item's view so we have some dimensions to use
             holder.itemView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
             int width = holder.itemView.getMeasuredHeight();
@@ -96,6 +97,8 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
                     .centerCrop()
                     .error(android.R.drawable.stat_notify_error)
                     .into(holder.trackImage);
+        }else{
+            holder.trackImage.setVisibility(View.INVISIBLE);
         }
 
         holder.trackItem.setOnClickListener(new View.OnClickListener() {

@@ -239,6 +239,10 @@ public class PlayerService extends Service {
         return mTracks;
     }
 
+    public Track getCurrentTrack(){
+        return mTracks.get(mCurrentTrack);
+    }
+
     public boolean isPlaying(){
         return mIsPlaying;
     }
