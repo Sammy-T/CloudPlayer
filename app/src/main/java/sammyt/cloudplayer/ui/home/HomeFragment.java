@@ -24,12 +24,14 @@ import de.voidplus.soundcloud.User;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.TrackAdapter;
 import sammyt.cloudplayer.UserAndTracksTask;
+import sammyt.cloudplayer.ui.SelectedTrackModel;
 
 public class HomeFragment extends Fragment {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
     private HomeViewModel homeViewModel;
+    private SelectedTrackModel selectedTrackModel;
 
     private ProgressBar mLoadingView;
     private LinearLayout mErrorView;
@@ -43,6 +45,7 @@ public class HomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         homeViewModel = ViewModelProviders.of(this).get(HomeViewModel.class);
+        selectedTrackModel = ViewModelProviders.of(getActivity()).get(SelectedTrackModel.class);
 
         View root = inflater.inflate(R.layout.fragment_home, container, false);
         mTrackRecycler = root.findViewById(R.id.liked_tracks_recycler);
@@ -53,6 +56,7 @@ public class HomeFragment extends Fragment {
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
         mTrackRecycler.setLayoutManager(layoutManager);
 
+        // Observe the View Model to initialize or update the adapter
         homeViewModel.getTracks().observe(this, new Observer<ArrayList<Track>>() {
             @Override
             public void onChanged(ArrayList<Track> tracks) {
@@ -67,7 +71,7 @@ public class HomeFragment extends Fragment {
                 if(mAdapter == null){
                     logMessage += "Adapter initialization";
 
-                    mAdapter = new TrackAdapter(tracks);
+                    mAdapter = new TrackAdapter(getContext(), tracks);
                     mAdapter.setOnTrackClickListener(mTrackClickListener);
                     mTrackRecycler.setAdapter(mAdapter);
                 }else{
@@ -76,6 +80,16 @@ public class HomeFragment extends Fragment {
                 }
 
                 Log.d(LOG_TAG, logMessage);
+            }
+        });
+
+        // Observe the shared View Model to update the adapter's selected item
+        selectedTrackModel.getSelectedTrack().observe(getActivity(), new Observer<SelectedTrackModel.SelectedTrack>() {
+            @Override
+            public void onChanged(SelectedTrackModel.SelectedTrack selectedTrack) {
+                if(selectedTrack != null) {
+                    mAdapter.setSelectedTrack(selectedTrack.getTrack());
+                }
             }
         });
 
@@ -95,8 +109,8 @@ public class HomeFragment extends Fragment {
         @Override
         public void onTrackClick(int position, Track track) {
             Log.d(LOG_TAG, "Track Clicked - " + position + " " + track.getTitle() + " " + track);
-            //// TODO: Set the Service's track list, Load the track
-            //// TODO: Store the current track in a shared view model?
+
+            selectedTrackModel.setSelectedTrack(position, track, homeViewModel.getTracks().getValue(), LOG_TAG);
         }
     };
 

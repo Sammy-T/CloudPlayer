@@ -1,5 +1,6 @@
 package sammyt.cloudplayer;
 
+import android.content.Context;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,6 +10,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.squareup.picasso.Picasso;
@@ -21,7 +23,9 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
+    private Context mContext;
     private ArrayList<Track> mTracks = new ArrayList<>();
+    private Track mSelectedTrack;
 
     private onTrackClickListener mListener;
 
@@ -40,7 +44,9 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
         }
     }
 
-    public TrackAdapter(ArrayList<Track> tracks){
+    public TrackAdapter(Context context, ArrayList<Track> tracks){
+        mContext = context;
+
         if(tracks != null) {
             mTracks = tracks;
         }
@@ -78,9 +84,23 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
         String artist = track.getUser().getUsername();
         String trackImage = track.getArtworkUrl();
 
+        // Set the item's title and artist info
         holder.trackTitle.setText(title);
         holder.trackArtist.setText(artist);
 
+        // Set the item's text color
+        int textColor;
+
+        if(track == mSelectedTrack){
+            textColor = ContextCompat.getColor(mContext, R.color.colorPrimary);
+        }else{
+            textColor = ContextCompat.getColor(mContext, R.color.colorText);
+        }
+
+        holder.trackTitle.setTextColor(textColor);
+        holder.trackArtist.setTextColor(textColor);
+
+        // Set the item's track image
         if(trackImage != null){
             holder.trackImage.setVisibility(View.VISIBLE);
 
@@ -119,6 +139,11 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
     public void updateTracks(ArrayList<Track> tracks){
         mTracks = tracks;
+        notifyDataSetChanged();
+    }
+
+    public void setSelectedTrack(Track selectedTrack){
+        mSelectedTrack = selectedTrack;
         notifyDataSetChanged();
     }
 }

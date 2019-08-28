@@ -135,7 +135,7 @@ public class PlayerService extends Service {
     }
 
     public interface PlayerServiceListener{
-        void onTrackLoaded(Track track);
+        void onTrackLoaded(int trackPos, Track track);
         void onPlayback(float duration, float currentPos, float bufferPos);
         void onSessionId(int sessionId);
     }
@@ -240,6 +240,10 @@ public class PlayerService extends Service {
     }
 
     public Track getCurrentTrack(){
+        if(mTracks == null){
+            return null;
+        }
+
         return mTracks.get(mCurrentTrack);
     }
 
@@ -285,7 +289,7 @@ public class PlayerService extends Service {
 
                         // Call the track loaded interface
                         if(mListener != null){
-                            mListener.onTrackLoaded(mTracks.get(mCurrentTrack));
+                            mListener.onTrackLoaded(mCurrentTrack, mTracks.get(mCurrentTrack));
                         }
 
                         // Start playback monitoring

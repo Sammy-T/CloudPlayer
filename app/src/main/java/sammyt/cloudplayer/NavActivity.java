@@ -17,16 +17,21 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.squareup.picasso.Picasso;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import de.voidplus.soundcloud.Track;
+import sammyt.cloudplayer.ui.SelectedTrackModel;
 
 public class NavActivity extends AppCompatActivity implements PlayerService.PlayerServiceListener {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
+
+    private SelectedTrackModel selectedTrackModel;
 
     private ImageButton mPlay;
     private RelativeLayout mInfoArea;
@@ -58,6 +63,23 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
 //        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(navView, navController);
 
+        selectedTrackModel = ViewModelProviders.of(this).get(SelectedTrackModel.class);
+
+        // Observe the shared View Model to update the service's track list & load the selected track
+        selectedTrackModel.getSelectedTrack().observe(this, new Observer<SelectedTrackModel.SelectedTrack>() {
+            @Override
+            public void onChanged(SelectedTrackModel.SelectedTrack selectedTrack) {
+                if(mBound){
+                    if(selectedTrack.getSelectionSource().equals(LOG_TAG)){
+                        return; // Prevent an endless loop if this was triggered by this activity
+                    }
+
+                    mService.setTrackList(selectedTrack.getTrackList());
+                    mService.loadTrack(selectedTrack.getPos());
+                }
+            }
+        });
+
         mPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -78,7 +100,7 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
 
     @Override
     public void onPause(){
-        // Release the player & unbind the service if nothing is playing
+        // Unbind the service if nothing is playing
         if (mBound && !mService.isPlaying()) {
             Log.d(LOG_TAG, "unbind service");
 
@@ -92,7 +114,7 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
     @Override
     public void onDestroy(){
         // The activity is being destroyed,
-        // release the player & unbind the service
+        // unbind the service
         if(mBound) {
             Log.d(LOG_TAG, "unbind service");
 
@@ -113,6 +135,7 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
         }
     }
 
+    // Updates the Mini Player's playback buttons & track info
     private void updateUI(){
         if(mService.isPlaying()){
             Picasso.get()
@@ -134,8 +157,11 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
     }
 
     // From the Player Service Interface
-    public void onTrackLoaded(Track track){
+    public void onTrackLoaded(int trackPos, Track track){
         updateUI();
+
+        // Update the shared View Model so other observers can respond to the updated data
+        selectedTrackModel.updateSelectedTrack(trackPos, track, LOG_TAG);
     }
 
     // From the Player Service Interface

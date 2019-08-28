@@ -154,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         LinearLayoutManager layoutManager = new LinearLayoutManager(MainActivity.this);
         mTrackRecycler.setLayoutManager(layoutManager);
 
-        mAdapter = new TrackAdapter(null);
+        mAdapter = new TrackAdapter(MainActivity.this,null);
         mAdapter.setOnTrackClickListener(new TrackAdapter.onTrackClickListener() {
             @Override
             public void onTrackClick(int position, Track track) {
@@ -287,8 +287,10 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
 
                         Toast.makeText(MainActivity.this, "Retrieved data from service",
                                 Toast.LENGTH_SHORT).show();
+                    }else{
+                        Toast.makeText(MainActivity.this, "No data to retrieve from service",
+                                Toast.LENGTH_SHORT).show();
                     }
-                    //// TODO: Else, provide a button to request a manual load
                 }
             }
         });
@@ -317,7 +319,7 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
     }
 
     // From the Player Service Interface
-    public void onTrackLoaded(Track track){
+    public void onTrackLoaded(int trackPos, Track track){
         Log.d(LOG_TAG, "art url: " + track.getArtworkUrl());
 
         String rawUrl = track.getArtworkUrl();
