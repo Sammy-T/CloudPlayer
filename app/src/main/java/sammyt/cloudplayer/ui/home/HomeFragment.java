@@ -20,6 +20,7 @@ import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
+
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.TrackAdapter;
 import sammyt.cloudplayer.UserAndTracksTask;
@@ -100,7 +101,7 @@ public class HomeFragment extends Fragment {
 
     private void loadTrackData(){
         Log.d(LOG_TAG, "Load track data");
-        
+
         setVisibleView(VisibleView.loading);
 
         UserAndTracksTask trackDataTask = new UserAndTracksTask(

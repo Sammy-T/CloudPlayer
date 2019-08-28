@@ -12,6 +12,8 @@ import androidx.navigation.ui.NavigationUI;
 
 public class NavActivity extends AppCompatActivity {
 
+    private final String LOG_TAG = this.getClass().getSimpleName();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
