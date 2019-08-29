@@ -69,6 +69,7 @@ public class PlayerService extends Service {
     private int mCurrentTrack;
     private ArrayList<Track> mTracks;
 
+    private Uri mUri;
     private SimpleExoPlayer mPlayer;
     private DataSource.Factory mDataSourceFactory;
     private Handler mPlaybackHandler = new Handler();
@@ -256,7 +257,6 @@ public class PlayerService extends Service {
     }
 
     public void loadTrack(int trackPos){
-
         if(!requestFocus()){
             return; // Return early if we don't have authorization to play
         }
@@ -267,8 +267,15 @@ public class PlayerService extends Service {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                final Uri uri = Uri.parse(mTracks.get(mCurrentTrack).getStreamUrl());
-                Log.d(LOG_TAG, "---- Track URI ----\n" + uri);
+                try{
+                    mUri = Uri.parse(mTracks.get(mCurrentTrack).getStreamUrl());
+                    Log.d(LOG_TAG, "---- Track URI ----\n" + mUri);
+                }catch(NullPointerException e){
+                    String message = "Error loading track. Possible Server Issue.";
+                    Log.e(LOG_TAG, message, e);
+                    showTrackLoadError(handler, message);
+                    return;
+                }
 
                 handler.post(new Runnable() {
                     @SuppressLint("RestrictedApi")
@@ -280,7 +287,7 @@ public class PlayerService extends Service {
                         mPlayer.setPlayWhenReady(false); // Stop playing the previous track
 
                         MediaSource mediaSource = new ProgressiveMediaSource.Factory(mDataSourceFactory)
-                                .createMediaSource(uri);
+                                .createMediaSource(mUri);
 
                         mPlayer.prepare(mediaSource);
                         mPlayer.setPlayWhenReady(true);
@@ -301,6 +308,15 @@ public class PlayerService extends Service {
                 });
             }
         }).start();
+    }
+
+    private void showTrackLoadError(Handler handler, final String message){
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     // Keeps track of the player's current playback information
