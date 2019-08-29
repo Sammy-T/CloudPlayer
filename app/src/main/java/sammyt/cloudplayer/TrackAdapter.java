@@ -89,12 +89,10 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
         holder.trackArtist.setText(artist);
 
         // Set the item's text color
-        int textColor;
+        int textColor = ContextCompat.getColor(mContext, R.color.colorText);
 
-        if(track == mSelectedTrack){
+        if(mSelectedTrack != null && track.getId().equals(mSelectedTrack.getId())){
             textColor = ContextCompat.getColor(mContext, R.color.colorPrimary);
-        }else{
-            textColor = ContextCompat.getColor(mContext, R.color.colorText);
         }
 
         holder.trackTitle.setTextColor(textColor);

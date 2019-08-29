@@ -56,7 +56,11 @@ public class HomeFragment extends Fragment {
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
         mTrackRecycler.setLayoutManager(layoutManager);
 
-        // Observe the View Model to initialize or update the adapter
+        mAdapter = new TrackAdapter(getContext(), null);
+        mAdapter.setOnTrackClickListener(mTrackClickListener);
+        mTrackRecycler.setAdapter(mAdapter);
+
+        // Observe the View Model to update the adapter
         homeViewModel.getTracks().observe(this, new Observer<ArrayList<Track>>() {
             @Override
             public void onChanged(ArrayList<Track> tracks) {
@@ -68,15 +72,16 @@ public class HomeFragment extends Fragment {
                     setVisibleView(VisibleView.loaded);
                 }
 
-                if(mAdapter == null){
-                    logMessage += "Adapter initialization";
-
-                    mAdapter = new TrackAdapter(getContext(), tracks);
-                    mAdapter.setOnTrackClickListener(mTrackClickListener);
-                    mTrackRecycler.setAdapter(mAdapter);
-                }else{
-                    logMessage = "Adapter update";
+                if(mAdapter != null){
+                    logMessage += "Adapter update";
                     mAdapter.updateTracks(tracks);
+                }
+
+                // If a track was previously selected, set the selected track in the adapter
+                // (This covers re-creations of this fragment while navigating w/ bottom nav)
+                SelectedTrackModel.SelectedTrack selectedTrack = selectedTrackModel.getSelectedTrack().getValue();
+                if(selectedTrack != null){
+                    mAdapter.setSelectedTrack(selectedTrack.getTrack());
                 }
 
                 Log.d(LOG_TAG, logMessage);
@@ -87,7 +92,7 @@ public class HomeFragment extends Fragment {
         selectedTrackModel.getSelectedTrack().observe(getActivity(), new Observer<SelectedTrackModel.SelectedTrack>() {
             @Override
             public void onChanged(SelectedTrackModel.SelectedTrack selectedTrack) {
-                if(selectedTrack != null) {
+                if(selectedTrack != null && mAdapter != null) {
                     mAdapter.setSelectedTrack(selectedTrack.getTrack());
                 }
             }
