@@ -26,6 +26,7 @@ import androidx.navigation.ui.NavigationUI;
 
 import de.voidplus.soundcloud.Track;
 import sammyt.cloudplayer.ui.SelectedTrackModel;
+import sammyt.cloudplayer.ui.player.PlayerActivity;
 
 public class NavActivity extends AppCompatActivity implements PlayerService.PlayerServiceListener {
 
@@ -87,6 +88,14 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
                     mService.togglePlay(!mService.isPlaying());
                     updateUI();
                 }
+            }
+        });
+
+        mInfoArea.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(NavActivity.this, PlayerActivity.class);
+                startActivity(intent);
             }
         });
     }

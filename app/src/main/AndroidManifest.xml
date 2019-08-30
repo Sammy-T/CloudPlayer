@@ -10,10 +10,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
+        <activity android:name=".ui.player.PlayerActivity"></activity>
         <activity
             android:name=".NavActivity"
-            android:label="@string/title_activity_nav"></activity>
-
+            android:label="@string/title_activity_nav" />
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTask">
@@ -28,10 +28,10 @@
             android:name=".PlayerService"
             android:exported="false" />
     </application>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
 </manifest>
