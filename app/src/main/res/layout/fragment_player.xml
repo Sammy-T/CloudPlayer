@@ -8,9 +8,10 @@
     tools:context=".ui.player.PlayerFragment">
 
     <ImageView
-        android:id="@+id/track_image"
+        android:id="@+id/track_image_2"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:src="@drawable/ic_play_grey600_48dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/track_title"/>
     <SurfaceView
@@ -34,7 +35,7 @@
         android:layout_height="wrap_content"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:paddingTop="3dp"
+        android:paddingTop="6dp"
         android:paddingBottom="2dp"
         android:textSize="16sp"
         android:text="Track Title"

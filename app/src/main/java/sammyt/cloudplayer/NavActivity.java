@@ -141,6 +141,11 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
             bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         }else{
             updateUI();
+
+            Track track = mService.getCurrentTrack();
+            if(track != null){
+                selectedTrackModel.updateSelectedTrack(mService.getTrackPosition(), track, LOG_TAG);
+            }
         }
     }
 

@@ -46,6 +46,7 @@ import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 
 import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
@@ -66,8 +67,11 @@ public class PlayerService extends Service {
     private Context mContext = PlayerService.this;
     private User mUser;
     private boolean mIsPlaying = false;
+    private boolean mRepeat = false;
+    private boolean mShuffle = false;
     private int mCurrentTrack;
     private ArrayList<Track> mTracks;
+    private ArrayList<Track> mOriginalTracks;
 
     private Uri mUri;
     private SimpleExoPlayer mPlayer;
@@ -84,7 +88,7 @@ public class PlayerService extends Service {
     }
 
     public class PlayerBinder extends Binder{
-        PlayerService getService(){
+        public PlayerService getService(){
             return PlayerService.this;
         }
     }
@@ -233,7 +237,12 @@ public class PlayerService extends Service {
     }
 
     public void setTrackList(ArrayList<Track> trackList){
-        mTracks = trackList;
+        if(mTracks == null){
+            mTracks = new ArrayList<>();
+        }
+
+        mTracks.clear();
+        mTracks.addAll(trackList);
     }
 
     public ArrayList<Track> getTrackList(){
@@ -248,8 +257,49 @@ public class PlayerService extends Service {
         return mTracks.get(mCurrentTrack);
     }
 
+    public int getTrackPosition(){
+        return mCurrentTrack;
+    }
+
     public boolean isPlaying(){
         return mIsPlaying;
+    }
+
+    public void toggleRepeat(boolean repeat){
+        mRepeat = repeat;
+    }
+
+    public boolean getRepeat(){
+        return mRepeat;
+    }
+
+    public void toggleShuffle(boolean shuffle){
+        if(mTracks == null){
+            return;
+        }
+
+        if(mOriginalTracks == null){
+            mOriginalTracks = new ArrayList<>();
+        }
+
+        mShuffle = shuffle;
+
+        if(mShuffle){
+            mOriginalTracks.clear();
+            mOriginalTracks.addAll(mTracks);
+
+            Collections.shuffle(mTracks);
+
+        }else{
+            mTracks.clear();
+            mTracks.addAll(mOriginalTracks);
+        }
+
+        loadTrack(mCurrentTrack);
+    }
+
+    public boolean getShuffle(){
+        return mShuffle;
     }
 
     public int getSessionId(){
@@ -353,6 +403,10 @@ public class PlayerService extends Service {
 
     // Navigates the player to the previous or next track
     public void adjustTrack(AdjustTrack direction){
+        if(mTracks == null){
+            return;
+        }
+
         int adjustTrackPos = mCurrentTrack;
 
         switch(direction){
@@ -525,7 +579,11 @@ public class PlayerService extends Service {
         public void onPlayerStateChanged(EventTime eventTime, boolean playWhenReady, int playbackState) {
             // Loads the next track when current track has ended
             if(playWhenReady && playbackState == Player.STATE_ENDED){
-                adjustTrack(AdjustTrack.next);
+                if(mRepeat){
+                    loadTrack(mCurrentTrack); // Repeat the current track
+                }else{
+                    adjustTrack(AdjustTrack.next); // Play the next track
+                }
             }
         }
 

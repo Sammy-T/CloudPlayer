@@ -4,6 +4,7 @@
     <color name="colorPrimary">#ce93d8</color>
     <color name="colorPrimaryDark">#9c64a6</color>
     <color name="colorPrimaryTrans">#1Ace93d8</color>
+    <color name="colorPrimaryTrans50">#80ce93d8</color>
 <!--    <color name="colorAccent">#6EA664</color>-->
 <!--    <color name="colorAccent">#1FE0DF</color>-->
     <color name="colorAccent">#93D8CE</color>
