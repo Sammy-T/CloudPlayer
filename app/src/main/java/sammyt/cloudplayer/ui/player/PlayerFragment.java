@@ -19,6 +19,7 @@ import androidx.core.widget.ImageViewCompat;
 import androidx.fragment.app.Fragment;
 
 import android.os.IBinder;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.SurfaceView;
@@ -98,8 +99,14 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         mQueue = root.findViewById(R.id.queue_button);
         mBack = root.findViewById(R.id.player_back);
 
+        // Layer the surface view on top and set it to translucent
         mSurface.setZOrderOnTop(true);
         mSurface.getHolder().setFormat(PixelFormat.TRANSLUCENT);
+
+        // Set the Title text view to marquee if it's too long
+        mTitleView.setSingleLine(true);
+        mTitleView.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        mTitleView.setSelected(true);
 
         // Make sure the view is drawn before initially updating the UI
         // so we have a valid width and height to work with
@@ -245,7 +252,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
                 .load(playOrPause)
                 .into(mPlay);
 
-        //// TODO: Update the shuffle & repeat state
+        // Update the shuffle & repeat state
         if(getContext() != null) {
             int shuffleColor = ContextCompat.getColor(getContext(), R.color.colorPrimaryTrans50);
             int repeatColor = ContextCompat.getColor(getContext(), R.color.colorPrimaryTrans50);
@@ -253,6 +260,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
             if (mService.getShuffle()) {
                 shuffleColor = ContextCompat.getColor(getContext(), R.color.colorPrimary);
             }
+
             if (mService.getRepeat()) {
                 repeatColor = ContextCompat.getColor(getContext(), R.color.colorPrimary);
             }

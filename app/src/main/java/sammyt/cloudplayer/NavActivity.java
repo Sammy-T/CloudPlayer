@@ -42,6 +42,7 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
 
     private PlayerService mService;
     private boolean mBound = false;
+    private boolean mListenerConnected = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,6 +106,13 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
         super.onResume();
 
         init();
+
+        // If we're resuming this activity with the service still bound
+        // make sure we still have a listener
+        if(mBound && !mListenerConnected){
+            mService.setPlayerServiceListener(NavActivity.this);
+            mListenerConnected = true;
+        }
     }
 
     @Override
@@ -116,6 +124,8 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
             unbindService(mConnection);
             mBound = false;
         }
+
+        mListenerConnected = false;
 
         super.onPause();
     }
@@ -142,6 +152,8 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
         }else{
             updateUI();
 
+            // If we're resuming this activity
+            // update the shared View Model so other observers can respond
             Track track = mService.getCurrentTrack();
             if(track != null){
                 selectedTrackModel.updateSelectedTrack(mService.getTrackPosition(), track, LOG_TAG);
@@ -151,6 +163,7 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
 
     // Updates the Mini Player's playback buttons & track info
     private void updateUI(){
+        // Update the play button
         if(mService.isPlaying()){
             Picasso.get()
                     .load(R.drawable.ic_pause_white_24dp)
@@ -161,6 +174,7 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
                     .into(mPlay);
         }
 
+        // Update the track info
         if(mService.getCurrentTrack() != null){
             String title = mService.getCurrentTrack().getTitle();
             String artist = mService.getCurrentTrack().getUser().getUsername();
@@ -198,17 +212,20 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
             // and get our Service instance
             PlayerService.PlayerBinder binder = (PlayerService.PlayerBinder) service;
             mService = binder.getService();
-            mBound = true;
 
             // Set up the interface so we can receive call backs
-            // then initialize the player
+            // Initialize the player
             mService.setPlayerServiceListener(NavActivity.this);
             mService.initPlayer();
+
+            mBound = true;
+            mListenerConnected = true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             mBound = false;
+            mListenerConnected = false;
 
             Log.d(LOG_TAG, "Service disconnected");
         }

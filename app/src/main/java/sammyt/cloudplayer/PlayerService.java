@@ -103,6 +103,7 @@ public class PlayerService extends Service {
         Log.d(LOG_TAG, "PlayerService onStartCommand // intent: " + intent + " flags: "
                 + flags + " startId: " + startId);
 
+        // Respond to intents from the media notification
         if(intent.hasExtra(PLAYER_ACTION_EXTRA)){
             switch(intent.getIntExtra(PLAYER_ACTION_EXTRA, 0)){
                 case PLAYER_ACTION_PLAY_PAUSE:
@@ -581,6 +582,12 @@ public class PlayerService extends Service {
             if(playWhenReady && playbackState == Player.STATE_ENDED){
                 if(mRepeat){
                     loadTrack(mCurrentTrack); // Repeat the current track
+
+                }else if(mShuffle && mCurrentTrack == mTracks.size() - 1){
+                    // Restart from the first position and shuffle the list again
+                    mCurrentTrack = 0;
+                    toggleShuffle(true);
+
                 }else{
                     adjustTrack(AdjustTrack.next); // Play the next track
                 }
