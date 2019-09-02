@@ -272,7 +272,9 @@ public class PlayerService extends Service {
     public void removeTrackFromList(int position){
         mTracks.remove(position);
 
-        if(position == mCurrentTrack){
+        if(position < mCurrentTrack){
+            mCurrentTrack--;
+        }else if(position == mCurrentTrack){
             loadTrack(mCurrentTrack);
         }
     }
