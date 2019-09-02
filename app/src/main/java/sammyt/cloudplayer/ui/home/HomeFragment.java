@@ -23,7 +23,7 @@ import de.voidplus.soundcloud.User;
 
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.TrackAdapter;
-import sammyt.cloudplayer.UserAndTracksTask;
+import sammyt.cloudplayer.data_sc.TracksTask;
 import sammyt.cloudplayer.ui.SelectedTrackModel;
 
 public class HomeFragment extends Fragment {
@@ -124,14 +124,14 @@ public class HomeFragment extends Fragment {
 
         setVisibleView(VisibleView.loading);
 
-        UserAndTracksTask trackDataTask = new UserAndTracksTask(
+        TracksTask trackDataTask = new TracksTask(
                 getString(R.string.client_id),
                 getString(R.string.client_secret),
                 getString(R.string.login_name),
                 getString(R.string.login_password)
         );
         trackDataTask.execute();
-        trackDataTask.setOnFinishListener(new UserAndTracksTask.onFinishListener() {
+        trackDataTask.setOnFinishListener(new TracksTask.onFinishListener() {
             @Override
             public void onFinish(User user, ArrayList<Track> faveTracks) {
                 homeViewModel.setTracks(faveTracks);

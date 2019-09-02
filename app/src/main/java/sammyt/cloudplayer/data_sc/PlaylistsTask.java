@@ -1,4 +1,4 @@
-package sammyt.cloudplayer;
+package sammyt.cloudplayer.data_sc;
 
 import android.os.AsyncTask;
 import android.os.SystemClock;
@@ -6,11 +6,11 @@ import android.util.Log;
 
 import java.util.ArrayList;
 
+import de.voidplus.soundcloud.Playlist;
 import de.voidplus.soundcloud.SoundCloud;
-import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
 
-public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
+public class PlaylistsTask extends AsyncTask<Void, Void, Void> {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
@@ -19,11 +19,11 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
     private String mLoginName;
     private String mPassword;
     private User mUser;
-    private ArrayList<Track> mFaveTracks = new ArrayList<>();
+    private ArrayList<Playlist> mPlaylists = new ArrayList<>();
 
     private onFinishListener mListener;
 
-    public UserAndTracksTask(String clientId, String clientSecret, String loginName, String password){
+    public PlaylistsTask(String clientId, String clientSecret, String loginName, String password){
         mClientId = clientId;
         mClientSecret = clientSecret;
         mLoginName = loginName;
@@ -31,7 +31,7 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
     }
 
     public interface onFinishListener{
-        void onFinish(User user, ArrayList<Track> faveTracks);
+        void onFinish(User user, ArrayList<Playlist> playlists);
         void onFailure();
     }
 
@@ -58,20 +58,20 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
         SystemClock.sleep(500);
         Log.d(LOG_TAG, "user: " + mUser);
 
-        int count = mUser.getPublicFavoritesCount();
+        int count = mUser.getPrivatePlaylistsCount() + mUser.getPlaylistCount();
         int limit = 50;
         int pages = count / limit + 1;
 
-        Log.d(LOG_TAG, "favorites count: " + count + " favorites pages: " + pages);
+        Log.d(LOG_TAG, "playlist count: " + count + " playlist pages: " + pages);
 
         try {
             for(int i = 0; i < pages; i++) {
-                ArrayList<Track> tempTracks = soundCloud.getMeFavorites(i * limit, limit);
+                ArrayList<Playlist> tempPlaylists = soundCloud.getMePlaylists(i * limit, limit);
                 SystemClock.sleep(500);
-                mFaveTracks.addAll(tempTracks);
+                mPlaylists.addAll(tempPlaylists);
             }
         }catch(NullPointerException e){
-            Log.e(LOG_TAG, "Error getting favorites.", e);
+            Log.e(LOG_TAG, "Error getting playlists.", e);
             cancel(true);
             return null;
         }
@@ -89,7 +89,7 @@ public class UserAndTracksTask extends AsyncTask<Void, Void, Void>{
     @Override
     protected void onPostExecute(Void result){
         if(mListener != null){
-            mListener.onFinish(mUser, mFaveTracks);
+            mListener.onFinish(mUser, mPlaylists);
         }
     }
 }

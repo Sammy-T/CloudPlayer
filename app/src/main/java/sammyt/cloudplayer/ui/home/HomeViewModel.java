@@ -1,8 +1,5 @@
 package sammyt.cloudplayer.ui.home;
 
-import android.app.Application;
-
-import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -10,9 +7,6 @@ import androidx.lifecycle.ViewModel;
 import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Track;
-import de.voidplus.soundcloud.User;
-import sammyt.cloudplayer.R;
-import sammyt.cloudplayer.UserAndTracksTask;
 
 public class HomeViewModel extends ViewModel {
 

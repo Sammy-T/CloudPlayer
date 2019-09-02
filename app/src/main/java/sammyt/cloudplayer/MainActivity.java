@@ -42,6 +42,7 @@ import de.voidplus.soundcloud.User;
 import me.bogerchan.niervisualizer.NierVisualizerManager;
 import me.bogerchan.niervisualizer.renderer.IRenderer;
 import me.bogerchan.niervisualizer.renderer.columnar.ColumnarType1Renderer;
+import sammyt.cloudplayer.data_sc.TracksTask;
 
 public class MainActivity extends AppCompatActivity implements PlayerService.PlayerServiceListener {
 
@@ -247,13 +248,13 @@ public class MainActivity extends AppCompatActivity implements PlayerService.Pla
         }
 
         // Get the user and favorite tracks
-        UserAndTracksTask initTask = new UserAndTracksTask(
+        TracksTask initTask = new TracksTask(
                 getString(R.string.client_id),
                 getString(R.string.client_secret),
                 getString(R.string.login_name),
                 getString(R.string.login_password));
         initTask.execute();
-        initTask.setOnFinishListener(new UserAndTracksTask.onFinishListener() {
+        initTask.setOnFinishListener(new TracksTask.onFinishListener() {
             @Override
             public void onFinish(User user, ArrayList<Track> faveTracks) {
                 Log.d(LOG_TAG, "---- User ----\n" + user.toString());
