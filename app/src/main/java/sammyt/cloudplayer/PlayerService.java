@@ -242,8 +242,15 @@ public class PlayerService extends Service {
             mTracks = new ArrayList<>();
         }
 
+        if(mOriginalTracks == null){
+            mOriginalTracks = new ArrayList<>();
+        }
+
         mTracks.clear();
         mTracks.addAll(trackList);
+
+        mOriginalTracks.clear();
+        mOriginalTracks.addAll(trackList);
     }
 
     public ArrayList<Track> getTrackList(){
@@ -260,6 +267,14 @@ public class PlayerService extends Service {
 
     public int getTrackPosition(){
         return mCurrentTrack;
+    }
+
+    public void removeTrackFromList(int position){
+        mTracks.remove(position);
+
+        if(position == mCurrentTrack){
+            loadTrack(mCurrentTrack);
+        }
     }
 
     public boolean isPlaying(){
@@ -279,18 +294,10 @@ public class PlayerService extends Service {
             return;
         }
 
-        if(mOriginalTracks == null){
-            mOriginalTracks = new ArrayList<>();
-        }
-
         mShuffle = shuffle;
 
         if(mShuffle){
-            mOriginalTracks.clear();
-            mOriginalTracks.addAll(mTracks);
-
             Collections.shuffle(mTracks);
-
         }else{
             mTracks.clear();
             mTracks.addAll(mOriginalTracks);

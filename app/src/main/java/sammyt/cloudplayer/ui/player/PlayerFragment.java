@@ -76,6 +76,8 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
 
     private NierVisualizerManager mVisualizerManager;
 
+    private static final String QUEUE_FRAGMENT = "QUEUE_FRAGMENT";
+
     public PlayerFragment() {
         // Required empty public constructor
     }
@@ -107,17 +109,6 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         mTitleView.setSingleLine(true);
         mTitleView.setEllipsize(TextUtils.TruncateAt.MARQUEE);
         mTitleView.setSelected(true);
-
-        // Make sure the view is drawn before initially updating the UI
-        // so we have a valid width and height to work with
-        mImageView.post(new Runnable() {
-            @Override
-            public void run() {
-                if(mBound){
-                    updateUI();
-                }
-            }
-        });
 
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -183,6 +174,16 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
                     mService.toggleRepeat(!mService.getRepeat());
                     updateUI();
                 }
+            }
+        });
+
+        mQueue.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getFragmentManager().beginTransaction()
+                        .replace(R.id.content_container, new QueueFragment(), QUEUE_FRAGMENT)
+                        .addToBackStack(QUEUE_FRAGMENT)
+                        .commit();
             }
         });
 
@@ -404,6 +405,17 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
             if(checkPermission(Manifest.permission.RECORD_AUDIO)) {
                 initVisualizer(mService.getSessionId());
             }
+
+            // Make sure the view is drawn before updating the UI
+            // so we have a valid width and height to work with
+            mImageView.post(new Runnable() {
+                @Override
+                public void run() {
+                    if(mBound){
+                        updateUI();
+                    }
+                }
+            });
         }
 
         @Override
