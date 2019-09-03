@@ -44,6 +44,25 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
     private boolean mBound = false;
     private boolean mListenerConnected = false;
 
+    private onBackListener mBackListener;
+
+    public interface onBackListener{
+        boolean onBack();
+    }
+
+    public void setOnBackListener(onBackListener l){
+        mBackListener = l;
+    }
+
+    @Override
+    public void onBackPressed(){
+        if(mBackListener != null && mBackListener.onBack()){
+            return; // Consume the event
+        }
+
+        super.onBackPressed();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

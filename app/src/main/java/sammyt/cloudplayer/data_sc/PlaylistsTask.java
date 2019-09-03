@@ -8,6 +8,7 @@ import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Playlist;
 import de.voidplus.soundcloud.SoundCloud;
+import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
 
 public class PlaylistsTask extends AsyncTask<Void, Void, Void> {
@@ -68,6 +69,16 @@ public class PlaylistsTask extends AsyncTask<Void, Void, Void> {
             for(int i = 0; i < pages; i++) {
                 ArrayList<Playlist> tempPlaylists = soundCloud.getMePlaylists(i * limit, limit);
                 SystemClock.sleep(500);
+
+                // For some reason the Sound Cloud object isn't automatically set
+                // when I request tracks from playlists
+                // so it throws an error when I try to retrieve the stream url later
+                for(Playlist tempPlaylist: tempPlaylists){
+                    for(Track tempTrack: tempPlaylist.getTracks()){
+                        tempTrack.setSoundCloud(soundCloud); // Make sure each track has a valid SC object
+                    }
+                }
+
                 mPlaylists.addAll(tempPlaylists);
             }
         }catch(NullPointerException e){

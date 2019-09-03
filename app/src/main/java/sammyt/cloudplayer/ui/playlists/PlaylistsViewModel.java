@@ -4,16 +4,24 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import java.util.ArrayList;
+
+import de.voidplus.soundcloud.Playlist;
+
 public class PlaylistsViewModel extends ViewModel {
 
-    private MutableLiveData<String> mText;
+    private MutableLiveData<ArrayList<Playlist>> mPlaylists;
 
     public PlaylistsViewModel() {
-        mText = new MutableLiveData<>();
-        mText.setValue("This is playlists fragment");
+        mPlaylists = new MutableLiveData<>();
+        mPlaylists.setValue(null);
     }
 
-    public LiveData<String> getText() {
-        return mText;
+    public void setPlaylists(ArrayList<Playlist> playlists){
+        mPlaylists.setValue(playlists);
+    }
+
+    public LiveData<ArrayList<Playlist>> getPlaylists() {
+        return mPlaylists;
     }
 }
