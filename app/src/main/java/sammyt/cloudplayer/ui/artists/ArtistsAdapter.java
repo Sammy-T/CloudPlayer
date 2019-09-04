@@ -12,6 +12,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.jay.widget.StickyHeaders;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
 import sammyt.cloudplayer.R;
 
-public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements StickyHeaders {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
@@ -71,6 +72,13 @@ public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     @Override
     public int getItemViewType(int position){
         return (int) mItems.get(position)[0];
+    }
+
+    // (invoked by Sticky Headers)
+    @Override
+    public boolean isStickyHeader(int position){
+        int itemType = (int) mItems.get(position)[0];
+        return (itemType == HEADER);
     }
 
     // Create new views (invoked by Layout Manager)
@@ -172,10 +180,6 @@ public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             String alpha = Character.toString(track.getUser().getUsername().charAt(0)).toUpperCase();
             Object[] tempHeader = {HEADER, alpha};
             temp.add(tempHeader);
-        }
-
-        for(Object[] val: temp){
-            Log.d(LOG_TAG, val[0] + " - " + val[1]);
         }
 
         mItems.addAll(temp);

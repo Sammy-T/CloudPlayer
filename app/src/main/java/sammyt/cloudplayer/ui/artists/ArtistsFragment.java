@@ -5,6 +5,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -19,6 +21,7 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.jay.widget.StickyHeadersLinearLayoutManager;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -73,8 +76,15 @@ public class ArtistsFragment extends Fragment {
         mArtistTitle = root.findViewById(R.id.artist_selected_title);
         RecyclerView artistTrackRecycler = root.findViewById(R.id.artist_track_recycler);
 
+        // Set the View Switchers animations
+        Animation inAnim = AnimationUtils.loadAnimation(getContext(), android.R.anim.slide_in_left);
+        Animation outAnim = AnimationUtils.loadAnimation(getContext(), android.R.anim.slide_out_right);
+        mSwitcher.setInAnimation(inAnim);
+        mSwitcher.setOutAnimation(outAnim);
+
         // Set up artist recycler view
-        LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
+        StickyHeadersLinearLayoutManager<ArtistsAdapter> layoutManager =
+                new StickyHeadersLinearLayoutManager<>(getContext());
         artistRecycler.setLayoutManager(layoutManager);
 
         mAdapter = new ArtistsAdapter(null);
