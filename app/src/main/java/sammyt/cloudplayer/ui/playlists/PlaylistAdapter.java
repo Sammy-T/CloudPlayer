@@ -1,4 +1,4 @@
-package sammyt.cloudplayer;
+package sammyt.cloudplayer.ui.playlists;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,6 +15,7 @@ import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Playlist;
+import sammyt.cloudplayer.R;
 
 public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHolder> {
 

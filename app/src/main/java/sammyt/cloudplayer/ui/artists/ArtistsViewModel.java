@@ -4,16 +4,26 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import java.util.ArrayList;
+
+import de.voidplus.soundcloud.Track;
+
 public class ArtistsViewModel extends ViewModel {
 
-    private MutableLiveData<String> mText;
+    private final String LOG_TAG = this.getClass().getSimpleName();
+
+    private MutableLiveData<ArrayList<Track>> mTracks;
 
     public ArtistsViewModel() {
-        mText = new MutableLiveData<>();
-        mText.setValue("This is artists fragment");
+        mTracks = new MutableLiveData<>();
+        mTracks.setValue(null);
     }
 
-    public LiveData<String> getText() {
-        return mText;
+    public void setTracks(ArrayList<Track> tracks){
+        mTracks.setValue(tracks);
+    }
+
+    public LiveData<ArrayList<Track>> getTracks(){
+        return mTracks;
     }
 }

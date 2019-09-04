@@ -26,7 +26,6 @@ import de.voidplus.soundcloud.Playlist;
 import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
 import sammyt.cloudplayer.NavActivity;
-import sammyt.cloudplayer.PlaylistAdapter;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.TrackAdapter;
 import sammyt.cloudplayer.data_sc.PlaylistsTask;

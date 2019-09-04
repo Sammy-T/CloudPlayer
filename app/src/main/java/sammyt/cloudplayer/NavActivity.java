@@ -75,6 +75,7 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
         mArtist = findViewById(R.id.mini_artist);
         mProgress = findViewById(R.id.mini_progress);
 
+        //// TODO: Clean
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
 //        AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
