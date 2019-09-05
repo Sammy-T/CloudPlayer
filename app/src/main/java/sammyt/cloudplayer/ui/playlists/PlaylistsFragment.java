@@ -57,7 +57,7 @@ public class PlaylistsFragment extends Fragment {
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        playlistsViewModel = ViewModelProviders.of(this).get(PlaylistsViewModel.class);
+        playlistsViewModel = ViewModelProviders.of(getActivity()).get(PlaylistsViewModel.class);
         selectedTrackModel = ViewModelProviders.of(getActivity()).get(SelectedTrackModel.class);
 
         View root = inflater.inflate(R.layout.fragment_playlists, container, false);

@@ -24,13 +24,14 @@ import de.voidplus.soundcloud.User;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.TrackAdapter;
 import sammyt.cloudplayer.data_sc.TracksTask;
+import sammyt.cloudplayer.ui.TrackViewModel;
 import sammyt.cloudplayer.ui.SelectedTrackModel;
 
 public class HomeFragment extends Fragment {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
-    private HomeViewModel homeViewModel;
+    private TrackViewModel trackViewModel;
     private SelectedTrackModel selectedTrackModel;
 
     private ProgressBar mLoadingView;
@@ -44,7 +45,7 @@ public class HomeFragment extends Fragment {
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        homeViewModel = ViewModelProviders.of(this).get(HomeViewModel.class);
+        trackViewModel = ViewModelProviders.of(getActivity()).get(TrackViewModel.class);
         selectedTrackModel = ViewModelProviders.of(getActivity()).get(SelectedTrackModel.class);
 
         View root = inflater.inflate(R.layout.fragment_home, container, false);
@@ -61,7 +62,7 @@ public class HomeFragment extends Fragment {
         mTrackRecycler.setAdapter(mAdapter);
 
         // Observe the View Model to update the adapter
-        homeViewModel.getTracks().observe(this, new Observer<ArrayList<Track>>() {
+        trackViewModel.getTracks().observe(this, new Observer<ArrayList<Track>>() {
             @Override
             public void onChanged(ArrayList<Track> tracks) {
                 String logMessage = "ViewModel onChanged - ";
@@ -115,7 +116,7 @@ public class HomeFragment extends Fragment {
         public void onTrackClick(int position, Track track) {
             Log.d(LOG_TAG, "Track Clicked - " + position + " " + track.getTitle() + " " + track);
 
-            selectedTrackModel.setSelectedTrack(position, track, homeViewModel.getTracks().getValue(), LOG_TAG);
+            selectedTrackModel.setSelectedTrack(position, track, trackViewModel.getTracks().getValue(), LOG_TAG);
         }
     };
 
@@ -134,7 +135,7 @@ public class HomeFragment extends Fragment {
         trackDataTask.setOnFinishListener(new TracksTask.onFinishListener() {
             @Override
             public void onFinish(User user, ArrayList<Track> faveTracks) {
-                homeViewModel.setTracks(faveTracks);
+                trackViewModel.setTracks(faveTracks);
             }
 
             @Override

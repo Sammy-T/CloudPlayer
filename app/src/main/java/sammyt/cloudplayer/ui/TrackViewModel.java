@@ -1,4 +1,4 @@
-package sammyt.cloudplayer.ui.home;
+package sammyt.cloudplayer.ui;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -8,13 +8,13 @@ import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Track;
 
-public class HomeViewModel extends ViewModel {
+public class TrackViewModel extends ViewModel {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
     private MutableLiveData<ArrayList<Track>> mTracks;
 
-    public HomeViewModel() {
+    public TrackViewModel() {
         mTracks = new MutableLiveData<>();
         mTracks.setValue(null);
     }

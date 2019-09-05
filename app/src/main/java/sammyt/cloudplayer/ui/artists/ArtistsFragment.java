@@ -34,12 +34,13 @@ import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.TrackAdapter;
 import sammyt.cloudplayer.data_sc.TracksTask;
 import sammyt.cloudplayer.ui.SelectedTrackModel;
+import sammyt.cloudplayer.ui.TrackViewModel;
 
 public class ArtistsFragment extends Fragment {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
-    private ArtistsViewModel artistsViewModel;
+    private TrackViewModel trackViewModel;
     private SelectedTrackModel selectedTrackModel;
 
     private ProgressBar mLoadingView;
@@ -59,7 +60,7 @@ public class ArtistsFragment extends Fragment {
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        artistsViewModel = ViewModelProviders.of(this).get(ArtistsViewModel.class);
+        trackViewModel = ViewModelProviders.of(getActivity()).get(TrackViewModel.class);
         selectedTrackModel = ViewModelProviders.of(getActivity()).get(SelectedTrackModel.class);
 
         View root = inflater.inflate(R.layout.fragment_artists, container, false);
@@ -99,7 +100,7 @@ public class ArtistsFragment extends Fragment {
         mTrackAdapter.setOnTrackClickListener(mTrackClickListener);
         artistTrackRecycler.setAdapter(mTrackAdapter);
 
-        artistsViewModel.getTracks().observe(this, new Observer<ArrayList<Track>>() {
+        trackViewModel.getTracks().observe(this, new Observer<ArrayList<Track>>() {
             @Override
             public void onChanged(ArrayList<Track> tracks) {
                 String logMessage = "ViewModel onChanged - ";
@@ -190,7 +191,7 @@ public class ArtistsFragment extends Fragment {
         trackDataTask.setOnFinishListener(new TracksTask.onFinishListener() {
             @Override
             public void onFinish(User user, ArrayList<Track> faveTracks) {
-                artistsViewModel.setTracks(faveTracks);
+                trackViewModel.setTracks(faveTracks);
             }
 
             @Override
@@ -222,7 +223,7 @@ public class ArtistsFragment extends Fragment {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                ArrayList<Track> allTracks = artistsViewModel.getTracks().getValue();
+                ArrayList<Track> allTracks = trackViewModel.getTracks().getValue();
 
                 mArtistTracks.clear();
 
