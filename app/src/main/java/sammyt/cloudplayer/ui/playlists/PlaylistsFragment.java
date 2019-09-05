@@ -67,6 +67,7 @@ public class PlaylistsFragment extends Fragment {
         mSwitcher = root.findViewById(R.id.playlists_switcher);
 
         // Switcher's playlist list layout
+        TextView titleView = root.findViewById(R.id.title_playlists_text);
         mPlaylistRecycler = root.findViewById(R.id.playlists_recycler);
 
         // Switcher's selected playlist layout
@@ -125,6 +126,14 @@ public class PlaylistsFragment extends Fragment {
                     mTrackAdapter.setSelectedTrack(selectedTrack.getTrack());
                 }
                 //// TODO: set selected to null if selection isn't from this fragment or home activity?
+            }
+        });
+
+        // Allow manually refreshing the data by clicking on the title
+        titleView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                loadPlaylistData();
             }
         });
 

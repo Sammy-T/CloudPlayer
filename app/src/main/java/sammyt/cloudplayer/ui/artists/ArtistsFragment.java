@@ -70,6 +70,7 @@ public class ArtistsFragment extends Fragment {
         mSwitcher = root.findViewById(R.id.artists_switcher);
 
         // Switcher's artist list layout
+        TextView titleView = root.findViewById(R.id.title_artists_text);
         RecyclerView artistRecycler = root.findViewById(R.id.artists_recycler);
 
         // Switcher's selected artist layout
@@ -128,6 +129,14 @@ public class ArtistsFragment extends Fragment {
                     mTrackAdapter.setSelectedTrack(selectedTrack.getTrack());
                 }
                 //// TODO: set selected to null if selection isn't from this fragment or home activity?
+            }
+        });
+
+        // Allow manually refreshing the data by clicking on the title
+        titleView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                loadTrackData();
             }
         });
 

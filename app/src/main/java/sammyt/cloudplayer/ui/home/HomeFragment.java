@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -49,6 +50,7 @@ public class HomeFragment extends Fragment {
         selectedTrackModel = ViewModelProviders.of(getActivity()).get(SelectedTrackModel.class);
 
         View root = inflater.inflate(R.layout.fragment_home, container, false);
+        TextView titleView = root.findViewById(R.id.title_liked_text);
         mTrackRecycler = root.findViewById(R.id.liked_tracks_recycler);
         mLoadingView = root.findViewById(R.id.loading);
         mErrorView = root.findViewById(R.id.error);
@@ -96,6 +98,14 @@ public class HomeFragment extends Fragment {
                 if(selectedTrack != null && mAdapter != null) {
                     mAdapter.setSelectedTrack(selectedTrack.getTrack());
                 }
+            }
+        });
+
+        // Allow manually refreshing the data by clicking on the title
+        titleView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                loadTrackData();
             }
         });
 
