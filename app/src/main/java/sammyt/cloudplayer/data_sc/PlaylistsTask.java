@@ -56,7 +56,7 @@ public class PlaylistsTask extends AsyncTask<Void, Void, Void> {
         }
 
         mUser = soundCloud.getMe();
-        SystemClock.sleep(500);
+        SystemClock.sleep(100);
         Log.d(LOG_TAG, "user: " + mUser);
 
         int count = mUser.getPrivatePlaylistsCount() + mUser.getPlaylistCount();
@@ -68,7 +68,7 @@ public class PlaylistsTask extends AsyncTask<Void, Void, Void> {
         try {
             for(int i = 0; i < pages; i++) {
                 ArrayList<Playlist> tempPlaylists = soundCloud.getMePlaylists(i * limit, limit);
-                SystemClock.sleep(500);
+                SystemClock.sleep(100);
 
                 // For some reason the Sound Cloud object isn't automatically set
                 // when I request tracks from playlists

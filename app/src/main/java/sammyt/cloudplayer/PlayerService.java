@@ -490,7 +490,7 @@ public class PlayerService extends Service {
                     notificationManager.createNotificationChannel(createChannel());
                 }
 
-                Intent notificationIntent = new Intent(mContext, MainActivity.class);
+                Intent notificationIntent = new Intent(mContext, NavActivity.class);
                 PendingIntent pendingIntent = PendingIntent.getActivity(mContext, 650,
                         notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 

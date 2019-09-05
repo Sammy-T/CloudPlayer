@@ -75,14 +75,8 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
         mArtist = findViewById(R.id.mini_artist);
         mProgress = findViewById(R.id.mini_progress);
 
-        //// TODO: Clean
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-//        AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
-//                R.id.navigation_home, R.id.navigation_artists, R.id.navigation_playlists)
-//                .build();
+        // Set up the bottom navigation view with the Nav Controller
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
-//        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(navView, navController);
 
         selectedTrackModel = ViewModelProviders.of(this).get(SelectedTrackModel.class);

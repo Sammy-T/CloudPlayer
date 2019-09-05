@@ -55,7 +55,7 @@ public class TracksTask extends AsyncTask<Void, Void, Void>{
         }
 
         mUser = soundCloud.getMe();
-        SystemClock.sleep(500);
+        SystemClock.sleep(100);
         Log.d(LOG_TAG, "user: " + mUser);
 
         int count = mUser.getPublicFavoritesCount();
@@ -67,7 +67,7 @@ public class TracksTask extends AsyncTask<Void, Void, Void>{
         try {
             for(int i = 0; i < pages; i++) {
                 ArrayList<Track> tempTracks = soundCloud.getMeFavorites(i * limit, limit);
-                SystemClock.sleep(500);
+                SystemClock.sleep(100);
                 mFaveTracks.addAll(tempTracks);
             }
         }catch(NullPointerException e){
