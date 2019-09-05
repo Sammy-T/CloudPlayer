@@ -119,7 +119,7 @@ public class PlayerService extends Service {
                     break;
             }
 
-            buildMediaNotification(); // Update the notification
+            buildMediaNotification(mIsPlaying); // Update the notification
         }
         return START_STICKY;
     }
@@ -363,7 +363,7 @@ public class PlayerService extends Service {
                         mPlaybackHandler.postDelayed(mProgressRunnable, 0);
 
                         // Build the Media Notification & place the service in the foreground
-                        buildMediaNotification();
+                        buildMediaNotification(mIsPlaying);
                     }
                 });
             }
@@ -451,7 +451,7 @@ public class PlayerService extends Service {
         mPlayer.setPlayWhenReady(mIsPlaying);
 
         if(mTracks != null) {
-            buildMediaNotification(); // Update the media notification
+            buildMediaNotification(mIsPlaying); // Update the media notification
         }
 
         // Start or stop the playback monitoring depending on whether the track is playing
@@ -459,7 +459,6 @@ public class PlayerService extends Service {
             mPlaybackHandler.postDelayed(mProgressRunnable, 0);
         }else{
             mPlaybackHandler.removeCallbacks(mProgressRunnable);
-            stopForeground(false);
             abandonFocus(); // Remove the audio focus
         }
     }
@@ -476,15 +475,15 @@ public class PlayerService extends Service {
         }
     }
 
-    private void buildMediaNotification(){
+    private void buildMediaNotification(final boolean setForeground){
         new Thread(new Runnable() {
             @Override
             public void run() {
+                NotificationManager notificationManager = (NotificationManager) mContext
+                        .getSystemService(Context.NOTIFICATION_SERVICE);
+
                 // Create Notification Channel on API 26+
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-                    NotificationManager notificationManager = (NotificationManager) mContext
-                            .getSystemService(Context.NOTIFICATION_SERVICE);
-
                     // Register the channels with the system.
                     // Importance & Notification behaviors can't be changed after this
                     notificationManager.createNotificationChannel(createChannel());
@@ -541,7 +540,13 @@ public class PlayerService extends Service {
                 notifyBuilder.setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
                         .setShowActionsInCompactView(0, 1, 2)); // The indices of the actions. Can use up to 3 actions
 
-                startForeground(111, notifyBuilder.build());
+                // Delivers the notification with as foreground or regular as appropriate
+                if(setForeground) {
+                    startForeground(111, notifyBuilder.build());
+                }else{
+                    stopForeground(false);
+                    notificationManager.notify(111, notifyBuilder.build());
+                }
             }
         }).start();
     }
