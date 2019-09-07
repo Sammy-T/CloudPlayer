@@ -46,6 +46,7 @@ import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 
 import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
@@ -66,9 +67,13 @@ public class PlayerService extends Service {
     private Context mContext = PlayerService.this;
     private User mUser;
     private boolean mIsPlaying = false;
+    private boolean mRepeat = false;
+    private boolean mShuffle = false;
     private int mCurrentTrack;
     private ArrayList<Track> mTracks;
+    private ArrayList<Track> mOriginalTracks;
 
+    private Uri mUri;
     private SimpleExoPlayer mPlayer;
     private DataSource.Factory mDataSourceFactory;
     private Handler mPlaybackHandler = new Handler();
@@ -83,7 +88,7 @@ public class PlayerService extends Service {
     }
 
     public class PlayerBinder extends Binder{
-        PlayerService getService(){
+        public PlayerService getService(){
             return PlayerService.this;
         }
     }
@@ -98,6 +103,7 @@ public class PlayerService extends Service {
         Log.d(LOG_TAG, "PlayerService onStartCommand // intent: " + intent + " flags: "
                 + flags + " startId: " + startId);
 
+        // Respond to intents from the media notification
         if(intent.hasExtra(PLAYER_ACTION_EXTRA)){
             switch(intent.getIntExtra(PLAYER_ACTION_EXTRA, 0)){
                 case PLAYER_ACTION_PLAY_PAUSE:
@@ -113,7 +119,7 @@ public class PlayerService extends Service {
                     break;
             }
 
-            buildMediaNotification(); // Update the notification
+            buildMediaNotification(mIsPlaying); // Update the notification
         }
         return START_STICKY;
     }
@@ -135,7 +141,7 @@ public class PlayerService extends Service {
     }
 
     public interface PlayerServiceListener{
-        void onTrackLoaded(Track track);
+        void onTrackLoaded(int trackPos, Track track);
         void onPlayback(float duration, float currentPos, float bufferPos);
         void onSessionId(int sessionId);
     }
@@ -232,15 +238,78 @@ public class PlayerService extends Service {
     }
 
     public void setTrackList(ArrayList<Track> trackList){
-        mTracks = trackList;
+        if(mTracks == null){
+            mTracks = new ArrayList<>();
+        }
+
+        if(mOriginalTracks == null){
+            mOriginalTracks = new ArrayList<>();
+        }
+
+        mTracks.clear();
+        mTracks.addAll(trackList);
+
+        mOriginalTracks.clear();
+        mOriginalTracks.addAll(trackList);
     }
 
     public ArrayList<Track> getTrackList(){
         return mTracks;
     }
 
+    public Track getCurrentTrack(){
+        if(mTracks == null){
+            return null;
+        }
+
+        return mTracks.get(mCurrentTrack);
+    }
+
+    public int getTrackPosition(){
+        return mCurrentTrack;
+    }
+
+    public void removeTrackFromList(int position){
+        mTracks.remove(position);
+
+        if(position < mCurrentTrack){
+            mCurrentTrack--;
+        }else if(position == mCurrentTrack){
+            loadTrack(mCurrentTrack);
+        }
+    }
+
     public boolean isPlaying(){
         return mIsPlaying;
+    }
+
+    public void toggleRepeat(boolean repeat){
+        mRepeat = repeat;
+    }
+
+    public boolean getRepeat(){
+        return mRepeat;
+    }
+
+    public void toggleShuffle(boolean shuffle){
+        if(mTracks == null){
+            return;
+        }
+
+        mShuffle = shuffle;
+
+        if(mShuffle){
+            Collections.shuffle(mTracks);
+        }else{
+            mTracks.clear();
+            mTracks.addAll(mOriginalTracks);
+        }
+
+        loadTrack(mCurrentTrack);
+    }
+
+    public boolean getShuffle(){
+        return mShuffle;
     }
 
     public int getSessionId(){
@@ -248,7 +317,6 @@ public class PlayerService extends Service {
     }
 
     public void loadTrack(int trackPos){
-
         if(!requestFocus()){
             return; // Return early if we don't have authorization to play
         }
@@ -259,8 +327,15 @@ public class PlayerService extends Service {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                final Uri uri = Uri.parse(mTracks.get(mCurrentTrack).getStreamUrl());
-                Log.d(LOG_TAG, "---- Track URI ----\n" + uri);
+                try{
+                    mUri = Uri.parse(mTracks.get(mCurrentTrack).getStreamUrl());
+                    Log.d(LOG_TAG, "---- Track URI ----\n" + mUri);
+                }catch(NullPointerException e){
+                    String message = "Error loading track. Possible Server Issue.";
+                    Log.e(LOG_TAG, message, e);
+                    showTrackLoadError(handler, message);
+                    return;
+                }
 
                 handler.post(new Runnable() {
                     @SuppressLint("RestrictedApi")
@@ -272,7 +347,7 @@ public class PlayerService extends Service {
                         mPlayer.setPlayWhenReady(false); // Stop playing the previous track
 
                         MediaSource mediaSource = new ProgressiveMediaSource.Factory(mDataSourceFactory)
-                                .createMediaSource(uri);
+                                .createMediaSource(mUri);
 
                         mPlayer.prepare(mediaSource);
                         mPlayer.setPlayWhenReady(true);
@@ -281,18 +356,27 @@ public class PlayerService extends Service {
 
                         // Call the track loaded interface
                         if(mListener != null){
-                            mListener.onTrackLoaded(mTracks.get(mCurrentTrack));
+                            mListener.onTrackLoaded(mCurrentTrack, mTracks.get(mCurrentTrack));
                         }
 
                         // Start playback monitoring
                         mPlaybackHandler.postDelayed(mProgressRunnable, 0);
 
                         // Build the Media Notification & place the service in the foreground
-                        buildMediaNotification();
+                        buildMediaNotification(mIsPlaying);
                     }
                 });
             }
         }).start();
+    }
+
+    private void showTrackLoadError(Handler handler, final String message){
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     // Keeps track of the player's current playback information
@@ -329,6 +413,10 @@ public class PlayerService extends Service {
 
     // Navigates the player to the previous or next track
     public void adjustTrack(AdjustTrack direction){
+        if(mTracks == null){
+            return;
+        }
+
         int adjustTrackPos = mCurrentTrack;
 
         switch(direction){
@@ -363,7 +451,7 @@ public class PlayerService extends Service {
         mPlayer.setPlayWhenReady(mIsPlaying);
 
         if(mTracks != null) {
-            buildMediaNotification(); // Update the media notification
+            buildMediaNotification(mIsPlaying); // Update the media notification
         }
 
         // Start or stop the playback monitoring depending on whether the track is playing
@@ -371,7 +459,6 @@ public class PlayerService extends Service {
             mPlaybackHandler.postDelayed(mProgressRunnable, 0);
         }else{
             mPlaybackHandler.removeCallbacks(mProgressRunnable);
-            stopForeground(false);
             abandonFocus(); // Remove the audio focus
         }
     }
@@ -388,21 +475,21 @@ public class PlayerService extends Service {
         }
     }
 
-    private void buildMediaNotification(){
+    private void buildMediaNotification(final boolean setForeground){
         new Thread(new Runnable() {
             @Override
             public void run() {
+                NotificationManager notificationManager = (NotificationManager) mContext
+                        .getSystemService(Context.NOTIFICATION_SERVICE);
+
                 // Create Notification Channel on API 26+
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-                    NotificationManager notificationManager = (NotificationManager) mContext
-                            .getSystemService(Context.NOTIFICATION_SERVICE);
-
                     // Register the channels with the system.
                     // Importance & Notification behaviors can't be changed after this
                     notificationManager.createNotificationChannel(createChannel());
                 }
 
-                Intent notificationIntent = new Intent(mContext, MainActivity.class);
+                Intent notificationIntent = new Intent(mContext, NavActivity.class);
                 PendingIntent pendingIntent = PendingIntent.getActivity(mContext, 650,
                         notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
@@ -416,6 +503,7 @@ public class PlayerService extends Service {
                 notifyBuilder.setSmallIcon(R.drawable.play)
                         .setContentTitle(trackTitle)
                         .setContentText(trackArtist)
+                        .setShowWhen(false)
                         .setColor(ContextCompat.getColor(mContext, R.color.colorPrimary))
                         .setContentIntent(pendingIntent)
                         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
@@ -452,7 +540,13 @@ public class PlayerService extends Service {
                 notifyBuilder.setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
                         .setShowActionsInCompactView(0, 1, 2)); // The indices of the actions. Can use up to 3 actions
 
-                startForeground(111, notifyBuilder.build());
+                // Delivers the notification with as foreground or regular as appropriate
+                if(setForeground) {
+                    startForeground(111, notifyBuilder.build());
+                }else{
+                    stopForeground(false);
+                    notificationManager.notify(111, notifyBuilder.build());
+                }
             }
         }).start();
     }
@@ -501,7 +595,17 @@ public class PlayerService extends Service {
         public void onPlayerStateChanged(EventTime eventTime, boolean playWhenReady, int playbackState) {
             // Loads the next track when current track has ended
             if(playWhenReady && playbackState == Player.STATE_ENDED){
-                adjustTrack(AdjustTrack.next);
+                if(mRepeat){
+                    loadTrack(mCurrentTrack); // Repeat the current track
+
+                }else if(mShuffle && mCurrentTrack == mTracks.size() - 1){
+                    // Restart from the first position and shuffle the list again
+                    mCurrentTrack = 0;
+                    toggleShuffle(true);
+
+                }else{
+                    adjustTrack(AdjustTrack.next); // Play the next track
+                }
             }
         }
 

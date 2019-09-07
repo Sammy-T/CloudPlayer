@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">Cloud Player</string>
+    <string name="title_activity_nav">NavActivity</string>
+    <string name="title_home">Home</string>
+    <string name="title_artists">Artists</string>
+    <string name="title_playlists">Playlists</string>
+
+    <string name="liked_tracks">Liked Tracks</string>
+    <string name="artists">Artists</string>
+    <string name="playlists">Playlists</string>
+    <string name="queue">Queue</string>
+
+    <string name="error_loading">Error loading data</string>
+    <string name="retry">Retry</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
