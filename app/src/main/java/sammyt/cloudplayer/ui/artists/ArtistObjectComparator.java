@@ -10,11 +10,11 @@ public class ArtistObjectComparator implements Comparator<Object[]> {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
-    // Object[itemType, itemObject] : [String, String/User]
+    // Object[itemType, itemObject] : [Int, String/User]
 
     // Compares the second value of each array
     @Override
-    public int compare(Object[] objects1, Object[] objects2){
+    public int compare(Object[] objects1, Object[] objects2) throws IllegalArgumentException{
         Object object1Val = objects1[1];
         Object object2Val = objects2[1];
 
@@ -45,7 +45,7 @@ public class ArtistObjectComparator implements Comparator<Object[]> {
         }
 
         // This shouldn't be reached so throw an exception
-        throw new IllegalArgumentException("Each argument must be [String, String] or [String, User]");
+        throw new IllegalArgumentException("Each argument must be [Int, String] or [Int, User]");
     }
 
     private String tryStringCast(Object object){
