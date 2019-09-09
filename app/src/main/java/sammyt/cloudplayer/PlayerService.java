@@ -500,7 +500,7 @@ public class PlayerService extends Service {
 
                 NotificationCompat.Builder notifyBuilder = new NotificationCompat
                         .Builder(mContext, "CloudPlayer");
-                notifyBuilder.setSmallIcon(R.drawable.play)
+                notifyBuilder.setSmallIcon(R.drawable.ic_cloud_player)
                         .setContentTitle(trackTitle)
                         .setContentText(trackArtist)
                         .setShowWhen(false)
