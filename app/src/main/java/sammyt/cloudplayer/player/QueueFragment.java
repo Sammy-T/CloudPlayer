@@ -1,4 +1,4 @@
-package sammyt.cloudplayer.ui.player;
+package sammyt.cloudplayer.player;
 
 import android.content.ComponentName;
 import android.content.Context;

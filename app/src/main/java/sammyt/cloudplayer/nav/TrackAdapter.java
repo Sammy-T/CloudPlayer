@@ -1,7 +1,6 @@
-package sammyt.cloudplayer;
+package sammyt.cloudplayer.nav;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +17,7 @@ import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Track;
+import sammyt.cloudplayer.R;
 
 public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 

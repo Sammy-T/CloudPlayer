@@ -1,6 +1,4 @@
-package sammyt.cloudplayer.ui.artists;
-
-import android.util.Log;
+package sammyt.cloudplayer.nav.artists;
 
 import java.util.Comparator;
 

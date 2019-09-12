@@ -21,12 +21,11 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import de.voidplus.soundcloud.Track;
-import sammyt.cloudplayer.ui.SelectedTrackModel;
-import sammyt.cloudplayer.ui.player.PlayerActivity;
+import sammyt.cloudplayer.nav.SelectedTrackModel;
+import sammyt.cloudplayer.player.PlayerActivity;
 
 public class NavActivity extends AppCompatActivity implements PlayerService.PlayerServiceListener {
 

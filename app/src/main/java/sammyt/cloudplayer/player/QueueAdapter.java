@@ -1,4 +1,4 @@
-package sammyt.cloudplayer.ui.player;
+package sammyt.cloudplayer.player;
 
 import android.view.LayoutInflater;
 import android.view.View;

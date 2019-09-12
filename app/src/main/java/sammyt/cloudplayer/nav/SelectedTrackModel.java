@@ -1,4 +1,4 @@
-package sammyt.cloudplayer.ui;
+package sammyt.cloudplayer.nav;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;

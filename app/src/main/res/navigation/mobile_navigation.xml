@@ -8,19 +8,19 @@
 
     <fragment
         android:id="@+id/navigation_home"
-        android:name="sammyt.cloudplayer.ui.home.HomeFragment"
+        android:name="sammyt.cloudplayer.nav.home.HomeFragment"
         android:label="@string/title_home"
         tools:layout="@layout/fragment_home" />
 
     <fragment
         android:id="@+id/navigation_artists"
-        android:name="sammyt.cloudplayer.ui.artists.ArtistsFragment"
+        android:name="sammyt.cloudplayer.nav.artists.ArtistsFragment"
         android:label="@string/title_artists"
         tools:layout="@layout/fragment_artists" />
 
     <fragment
         android:id="@+id/navigation_playlists"
-        android:name="sammyt.cloudplayer.ui.playlists.PlaylistsFragment"
+        android:name="sammyt.cloudplayer.nav.playlists.PlaylistsFragment"
         android:label="@string/title_playlists"
         tools:layout="@layout/fragment_playlists" />
 </navigation>

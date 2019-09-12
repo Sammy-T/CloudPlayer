@@ -1,4 +1,4 @@
-package sammyt.cloudplayer.ui.artists;
+package sammyt.cloudplayer.nav.artists;
 
 import android.os.Bundle;
 import android.util.Log;
@@ -31,10 +31,10 @@ import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
-import sammyt.cloudplayer.TrackAdapter;
+import sammyt.cloudplayer.nav.TrackAdapter;
 import sammyt.cloudplayer.data_sc.TracksTask;
-import sammyt.cloudplayer.ui.SelectedTrackModel;
-import sammyt.cloudplayer.ui.TrackViewModel;
+import sammyt.cloudplayer.nav.SelectedTrackModel;
+import sammyt.cloudplayer.nav.TrackViewModel;
 
 public class ArtistsFragment extends Fragment {
 

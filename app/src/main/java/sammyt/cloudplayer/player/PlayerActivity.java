@@ -1,4 +1,4 @@
-package sammyt.cloudplayer.ui.player;
+package sammyt.cloudplayer.player;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;

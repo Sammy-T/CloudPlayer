@@ -1,4 +1,4 @@
-package sammyt.cloudplayer.ui.playlists;
+package sammyt.cloudplayer.nav.playlists;
 
 import android.view.LayoutInflater;
 import android.view.View;
