@@ -173,17 +173,20 @@ public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         // Use a TreeSet to prevent duplicates and organize the data
         // using our custom comparator
         TreeSet<Object[]> temp = new TreeSet<>(new ArtistObjectComparator());
+        ArrayList<Object[]> tempList = new ArrayList<>();
 
         for(Track track: tracks){
             // Add each track's artist
             Object[] tempArtist = {ITEM, track.getUser()};
-            temp.add(tempArtist);
+            tempList.add(tempArtist);
 
             // Add the alphabet header corresponding to the artist's name
             String alpha = Character.toString(track.getUser().getUsername().charAt(0)).toUpperCase();
             Object[] tempHeader = {HEADER, alpha};
-            temp.add(tempHeader);
+            tempList.add(tempHeader);
         }
+
+        temp.addAll(tempList); // Add all the items to the set so we're not sorting on each loop iteration
 
         mItems.addAll(temp);
     }
