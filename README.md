@@ -17,7 +17,7 @@ If you're looking to build and run this project, you should take note of the fol
 ## License
 MIT License
 
-Copyright (c) 2019 Samuel Telusma
+Copyright (c) 2020 Sammy-T
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
