@@ -1,6 +1,8 @@
 # CloudPlayer
 CloudPlayer is an Android media player app which streams content from SoundCloud. The app displays and allows playback of the logged-in user's publicly available liked tracks and playlists.
 
+<img src="/images/Screenshot_20200203-214952.png" width="30%" height="30%" /> <img src="/images/Screenshot_20200203-215012.png" width="30%" height="30%" /> <img src="/images/Screenshot_20200203-215019.png" width="30%" height="30%" /> <img src="/images/Screenshot_20200203-215124.png" width="30%" height="30%" /> <img src="/images/Screenshot_20200203-215148.png" width="30%" height="30%" />
+
 ## Notice
 If you're looking to build and run this project, you should take note of the following concerns:
 - SoundCloud Client ID and Client Secret
