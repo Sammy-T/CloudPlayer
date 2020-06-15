@@ -224,7 +224,8 @@ public class ArtistsFragment extends Fragment {
     private void loadTrackDataFromVolley(){
         RequestQueue queue = Volley.newRequestQueue(getContext());
 
-        String url = "https://api.soundcloud.com/users/42908683/favorites.json?client_id=" + getString(R.string.client_id);
+        String url = "https://api.soundcloud.com/users/" + getString(R.string.user_id)
+                + "/favorites.json?client_id=" + getString(R.string.client_id);
 
         JsonArrayRequest jsonRequest = new JsonArrayRequest(
                 Request.Method.GET,
@@ -240,7 +241,7 @@ public class ArtistsFragment extends Fragment {
 
                             for(int i = 0; i < response.length(); i++) {
                                 JSONObject jsonObject = response.getJSONObject(i);
-                                Log.d(LOG_TAG, "Volley item: " + jsonObject);
+//                                Log.d(LOG_TAG, "Volley item: " + jsonObject);
 
                                 tracks.add(jsonObject);
                             }
