@@ -23,6 +23,9 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.NavigationUI;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import de.voidplus.soundcloud.Track;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.player.PlayerActivity;
@@ -167,7 +170,7 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
 
             // If we're resuming this activity
             // update the shared View Model so other observers can respond
-            Track track = mService.getCurrentTrack();
+            JSONObject track = mService.getCurrentTrack();
             if(track != null){
                 selectedTrackModel.updateSelectedTrack(mService.getTrackPosition(), track, LOG_TAG);
             }
@@ -189,8 +192,16 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
 
         // Update the track info
         if(mService.getCurrentTrack() != null){
-            String title = mService.getCurrentTrack().getTitle();
-            String artist = mService.getCurrentTrack().getUser().getUsername();
+            String title;
+            String artist;
+
+            try{
+                title = mService.getCurrentTrack().getString("title");
+                artist = mService.getCurrentTrack().getJSONObject("user").getString("username");
+            }catch(JSONException e){
+                Log.e(LOG_TAG, "Unable to retrieve current track info.", e);
+                return;
+            }
 
             mTitle.setText(title);
             mArtist.setText(artist);
@@ -198,7 +209,7 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
     }
 
     // From the Player Service Interface
-    public void onTrackLoaded(int trackPos, Track track){
+    public void onTrackLoaded(int trackPos, JSONObject track){
         updateUI();
 
         // Update the shared View Model so other observers can respond to the updated data

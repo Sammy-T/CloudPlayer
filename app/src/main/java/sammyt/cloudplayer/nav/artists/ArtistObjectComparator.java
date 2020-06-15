@@ -1,5 +1,7 @@
 package sammyt.cloudplayer.nav.artists;
 
+import org.json.JSONObject;
+
 import java.util.Comparator;
 
 import de.voidplus.soundcloud.User;
@@ -19,8 +21,8 @@ public class ArtistObjectComparator implements Comparator<Object[]> {
         String object1Str = tryStringCast(object1Val);
         String object2Str = tryStringCast(object2Val);
 
-        User object1User = tryUserCast(object1Val);
-        User object2User = tryUserCast(object2Val);
+        JSONObject object1User = tryUserCast(object1Val);
+        JSONObject object2User = tryUserCast(object2Val);
 
         if(object1User != null){
             if(object2User != null){
@@ -58,11 +60,11 @@ public class ArtistObjectComparator implements Comparator<Object[]> {
         return casted;
     }
 
-    private User tryUserCast(Object object){
-        User casted = null;
+    private JSONObject tryUserCast(Object object){
+        JSONObject casted = null;
 
         try{
-            casted = (User) object;
+            casted = (JSONObject) object;
         }catch(ClassCastException e){
 //            Log.w(LOG_TAG, "Unable to cast to user.", e);
         }
@@ -76,21 +78,21 @@ public class ArtistObjectComparator implements Comparator<Object[]> {
     }
 
     // User, User
-    private int customCompare(User user1, User user2){
-        String userName1 = user1.getUsername();
-        String userName2 = user2.getUsername();
+    private int customCompare(JSONObject user1, JSONObject user2){
+        String userName1 = user1.optString("username");
+        String userName2 = user2.optString("username");
         return userName1.compareToIgnoreCase(userName2);
     }
 
     // String, User
-    private int customCompare(String string1, User user2){
-        String userName2 = user2.getUsername();
+    private int customCompare(String string1, JSONObject user2){
+        String userName2 = user2.optString("username");
         return string1.compareToIgnoreCase(userName2);
     }
 
     // User, String
-    private int customCompare(User user1, String string2){
-        String userName1 = user1.getUsername();
+    private int customCompare(JSONObject user1, String string2){
+        String userName1 = user1.optString("username");
         return userName1.compareToIgnoreCase(string2);
     }
 }

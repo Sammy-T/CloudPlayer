@@ -4,6 +4,8 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Track;
@@ -17,13 +19,13 @@ public class SelectedTrackModel extends ViewModel {
         mSelectedTrack.setValue(null);
     }
 
-    public void setSelectedTrack(int position, Track track, ArrayList<Track> trackList, String selectionSource){
+    public void setSelectedTrack(int position, JSONObject track, ArrayList<JSONObject> trackList, String selectionSource){
         SelectedTrack selectedTrack = new SelectedTrack(position, track, trackList, selectionSource);
         mSelectedTrack.setValue(selectedTrack);
     }
 
-    public void updateSelectedTrack(int position, Track track, String selectionSource){
-        ArrayList<Track> trackList = mSelectedTrack.getValue().getTrackList();
+    public void updateSelectedTrack(int position, JSONObject track, String selectionSource){
+        ArrayList<JSONObject> trackList = mSelectedTrack.getValue().getTrackList();
         setSelectedTrack(position, track, trackList, selectionSource);
     }
 
@@ -35,11 +37,11 @@ public class SelectedTrackModel extends ViewModel {
     // that will hold all the values we're interested in
     public class SelectedTrack{
         private int mPos;
-        private Track mTrack;
-        private ArrayList<Track> mTrackList;
+        private JSONObject mTrack;
+        private ArrayList<JSONObject> mTrackList;
         private String mSelectionSource;
 
-        SelectedTrack(int position, Track selectedTrack, ArrayList<Track> trackList, String selectionSource){
+        SelectedTrack(int position, JSONObject selectedTrack, ArrayList<JSONObject> trackList, String selectionSource){
             mPos = position;
             mTrack = selectedTrack;
             mTrackList = trackList;
@@ -50,11 +52,11 @@ public class SelectedTrackModel extends ViewModel {
             return mPos;
         }
 
-        public Track getTrack(){
+        public JSONObject getTrack(){
             return mTrack;
         }
 
-        public ArrayList<Track> getTrackList(){
+        public ArrayList<JSONObject> getTrackList(){
             return mTrackList;
         }
 

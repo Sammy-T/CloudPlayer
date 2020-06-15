@@ -17,6 +17,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 
+import org.json.JSONObject;
+
 import de.voidplus.soundcloud.Track;
 import sammyt.cloudplayer.PlayerService;
 import sammyt.cloudplayer.R;
@@ -89,7 +91,7 @@ public class QueueFragment extends Fragment implements PlayerService.PlayerServi
 
     private QueueAdapter.onQueueClickListener mQueueClickListener = new QueueAdapter.onQueueClickListener() {
         @Override
-        public void onQueueClick(int position, Track track) {
+        public void onQueueClick(int position, JSONObject track) {
             Log.d(LOG_TAG, "Queue click - " + position + " " + track);
 
             if(mBound) {
@@ -98,7 +100,7 @@ public class QueueFragment extends Fragment implements PlayerService.PlayerServi
         }
 
         @Override
-        public void onQueueRemove(int position, Track track) {
+        public void onQueueRemove(int position, JSONObject track) {
             Log.d(LOG_TAG, "Queue Remove click - " + position + " " + track);
 
             if(mBound){
@@ -109,7 +111,7 @@ public class QueueFragment extends Fragment implements PlayerService.PlayerServi
     };
 
     // Player Service Interface method
-    public void onTrackLoaded(int trackPos, Track track){
+    public void onTrackLoaded(int trackPos, JSONObject track){
         Log.d(LOG_TAG, "Track loaded: " + trackPos + " " + track);
 
         mAdapter.setSelectedTrack(track);

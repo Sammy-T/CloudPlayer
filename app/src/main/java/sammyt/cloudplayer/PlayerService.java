@@ -44,6 +44,9 @@ import androidx.media2.exoplayer.external.util.Util;
 
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -65,13 +68,13 @@ public class PlayerService extends Service {
     private PlayerServiceListener mListener;
 
     private Context mContext = PlayerService.this;
-    private User mUser;
+    private JSONObject mUser;
     private boolean mIsPlaying = false;
     private boolean mRepeat = false;
     private boolean mShuffle = false;
     private int mCurrentTrack;
-    private ArrayList<Track> mTracks;
-    private ArrayList<Track> mOriginalTracks;
+    private ArrayList<JSONObject> mTracks;
+    private ArrayList<JSONObject> mOriginalTracks;
 
     private Uri mUri;
     private SimpleExoPlayer mPlayer;
@@ -141,7 +144,7 @@ public class PlayerService extends Service {
     }
 
     public interface PlayerServiceListener{
-        void onTrackLoaded(int trackPos, Track track);
+        void onTrackLoaded(int trackPos, JSONObject track);
         void onPlayback(float duration, float currentPos, float bufferPos);
         void onSessionId(int sessionId);
     }
@@ -229,15 +232,15 @@ public class PlayerService extends Service {
         }
     }
 
-    public void setUser(User user){
+    public void setUser(JSONObject user){
         mUser = user;
     }
 
-    public User getUser(){
+    public JSONObject getUser(){
         return mUser;
     }
 
-    public void setTrackList(ArrayList<Track> trackList){
+    public void setTrackList(ArrayList<JSONObject> trackList){
         if(mTracks == null){
             mTracks = new ArrayList<>();
         }
@@ -253,11 +256,11 @@ public class PlayerService extends Service {
         mOriginalTracks.addAll(trackList);
     }
 
-    public ArrayList<Track> getTrackList(){
+    public ArrayList<JSONObject> getTrackList(){
         return mTracks;
     }
 
-    public Track getCurrentTrack(){
+    public JSONObject getCurrentTrack(){
         if(mTracks == null){
             return null;
         }
@@ -328,9 +331,9 @@ public class PlayerService extends Service {
             @Override
             public void run() {
                 try{
-                    mUri = Uri.parse(mTracks.get(mCurrentTrack).getStreamUrl());
+                    mUri = Uri.parse(mTracks.get(mCurrentTrack).getString("stream_url") + "?client_id="+ getString(R.string.client_id));
                     Log.d(LOG_TAG, "---- Track URI ----\n" + mUri);
-                }catch(NullPointerException e){
+                }catch(JSONException | NullPointerException e){
                     String message = "Error loading track. Possible Server Issue.";
                     Log.e(LOG_TAG, message, e);
                     showTrackLoadError(handler, message);
@@ -341,8 +344,8 @@ public class PlayerService extends Service {
                     @SuppressLint("RestrictedApi")
                     @Override
                     public void run() {
-                        String trackInfo = mTracks.get(mCurrentTrack).getUser().getUsername() + " - "
-                                + mTracks.get(mCurrentTrack).getTitle();
+//                        String trackInfo = mTracks.get(mCurrentTrack).getUser().getUsername() + " - "
+//                                + mTracks.get(mCurrentTrack).getTitle();
 
                         mPlayer.setPlayWhenReady(false); // Stop playing the previous track
 
@@ -493,10 +496,19 @@ public class PlayerService extends Service {
                 PendingIntent pendingIntent = PendingIntent.getActivity(mContext, 650,
                         notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-                Track track = mTracks.get(mCurrentTrack);
-                String trackTitle = track.getTitle();
-                String trackArtist = track.getUser().getUsername();
-                String trackImage = track.getArtworkUrl();
+                JSONObject track = mTracks.get(mCurrentTrack);
+                String trackTitle;
+                String trackArtist;
+                String trackImage;
+
+                try{
+                    trackTitle = track.getString("title");
+                    trackArtist = track.getJSONObject("user").getString("username");
+                    trackImage = track.getString("artwork_url");
+                }catch(JSONException e){
+                    Log.e(LOG_TAG, "Can't build notification.", e);
+                    return;
+                }
 
                 NotificationCompat.Builder notifyBuilder = new NotificationCompat
                         .Builder(mContext, "CloudPlayer");

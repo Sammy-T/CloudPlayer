@@ -20,6 +20,8 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Playlist;
@@ -49,7 +51,7 @@ public class PlaylistsFragment extends Fragment {
     private PlaylistAdapter mAdapter;
     private TrackAdapter mTrackAdapter;
 
-    private Playlist mSelectedPlaylist;
+//    private Playlist mSelectedPlaylist; //// TODO: FECK
 
     private enum VisibleView{
         loading, loaded, error
@@ -98,7 +100,7 @@ public class PlaylistsFragment extends Fragment {
         mPlaylistTrackRecycler.setAdapter(mTrackAdapter);
 
         // Observe the View Model to update the adapter
-        playlistsViewModel.getPlaylists().observe(this, new Observer<ArrayList<Playlist>>() {
+        playlistsViewModel.getPlaylists().observe(getViewLifecycleOwner(), new Observer<ArrayList<Playlist>>() {
             @Override
             public void onChanged(ArrayList<Playlist> playlists) {
                 String logMessage = "ViewModel onChanged - ";
@@ -177,8 +179,8 @@ public class PlaylistsFragment extends Fragment {
 
     private TrackAdapter.onTrackClickListener mTrackClickListener = new TrackAdapter.onTrackClickListener() {
         @Override
-        public void onTrackClick(int position, Track track) {
-            selectedTrackModel.setSelectedTrack(position, track, mSelectedPlaylist.getTracks(), LOG_TAG);
+        public void onTrackClick(int position, JSONObject track) {
+//            selectedTrackModel.setSelectedTrack(position, track, mSelectedPlaylist.getTracks(), LOG_TAG); //// TODO: FECK
         }
     };
 
@@ -205,7 +207,7 @@ public class PlaylistsFragment extends Fragment {
     }
 
     private void selectPlaylist(Playlist playlist){
-        mSelectedPlaylist = playlist;
+//        mSelectedPlaylist = playlist; //// TODO: FECK
 
         String title = playlist.getTitle();
         String count = playlist.getTracks().size() + " tracks";
@@ -213,7 +215,7 @@ public class PlaylistsFragment extends Fragment {
         mPlaylistSelectedTitle.setText(title);
         mPlaylistSelectedCount.setText(count);
 
-        mTrackAdapter.updateTracks(playlist.getTracks());
+//        mTrackAdapter.updateTracks(playlist.getTracks()); //// TODO: FECK
 
         mSwitcher.setDisplayedChild(1);
     }

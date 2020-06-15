@@ -1,6 +1,7 @@
 package sammyt.cloudplayer.nav.artists;
 
 import android.os.Handler;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +14,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.jay.widget.StickyHeaders;
 import com.squareup.picasso.Picasso;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.TreeSet;
@@ -54,14 +58,14 @@ public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
     }
 
-    public ArtistsAdapter(ArrayList<Track> tracks){
+    public ArtistsAdapter(ArrayList<JSONObject> tracks){
         if(tracks != null){
             buildItems(tracks);
         }
     }
 
     public interface OnArtistClickListener{
-        void onArtistClick(int position, User artist);
+        void onArtistClick(int position, JSONObject artist);
     }
 
     public void setOnArtistClickListener(OnArtistClickListener l){
@@ -110,14 +114,14 @@ public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         }else{
             final ArtistViewHolder artistHolder = (ArtistViewHolder) holder;
-            final User artist = (User) mItems.get(position)[1];
+            final JSONObject artist = (JSONObject) mItems.get(position)[1];
 
-            String artistName = artist.getUsername();
-            String artistImage = artist.getAvatarUrl();
+            String artistName = artist.optString("username", "error");
+            String artistImage = artist.optString("avatar_url");
 
             artistHolder.artistName.setText(artistName);
 
-            if(artistImage != null){
+            if(artistImage != null && !artistImage.equals("")){
                 // Request measuring of the item's view so we have some dimensions to use
                 holder.itemView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
                 int width = holder.itemView.getMeasuredHeight();
@@ -150,7 +154,7 @@ public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         return mItems.size();
     }
 
-    public void updateArtistTracks(final ArrayList<Track> tracks){
+    public void updateArtistTracks(final ArrayList<JSONObject> tracks){
         final Handler handler = new Handler();
         if(tracks != null) {
             new Thread(new Runnable() {
@@ -169,21 +173,25 @@ public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
     }
 
-    private void buildItems(ArrayList<Track> tracks){
+    private void buildItems(ArrayList<JSONObject> tracks){
         // Use a TreeSet to prevent duplicates and organize the data
         // using our custom comparator
         TreeSet<Object[]> temp = new TreeSet<>(new ArtistObjectComparator());
         ArrayList<Object[]> tempList = new ArrayList<>();
 
-        for(Track track: tracks){
-            // Add each track's artist
-            Object[] tempArtist = {ITEM, track.getUser()};
-            tempList.add(tempArtist);
+        try{
+            for (JSONObject track : tracks) {
+                // Add each track's artist
+                Object[] tempArtist = {ITEM, track.getJSONObject("user")};
+                tempList.add(tempArtist);
 
-            // Add the alphabet header corresponding to the artist's name
-            String alpha = Character.toString(track.getUser().getUsername().charAt(0)).toUpperCase();
-            Object[] tempHeader = {HEADER, alpha};
-            tempList.add(tempHeader);
+                // Add the alphabet header corresponding to the artist's name
+                String alpha = Character.toString(track.getJSONObject("user").getString("username").charAt(0)).toUpperCase();
+                Object[] tempHeader = {HEADER, alpha};
+                tempList.add(tempHeader);
+            }
+        }catch(JSONException e){
+            Log.e(LOG_TAG, "Unable to build items.", e);
         }
 
         temp.addAll(tempList); // Add all the items to the set so we're not sorting on each loop iteration

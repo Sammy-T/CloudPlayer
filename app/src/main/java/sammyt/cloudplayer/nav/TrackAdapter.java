@@ -1,6 +1,7 @@
 package sammyt.cloudplayer.nav;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +15,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Track;
@@ -24,8 +28,8 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     private final String LOG_TAG = this.getClass().getSimpleName();
 
     private Context mContext;
-    private ArrayList<Track> mTracks = new ArrayList<>();
-    private Track mSelectedTrack;
+    private ArrayList<JSONObject> mTracks = new ArrayList<>();
+    private JSONObject mSelectedTrack;
 
     private onTrackClickListener mListener;
 
@@ -44,7 +48,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
         }
     }
 
-    public TrackAdapter(Context context, ArrayList<Track> tracks){
+    public TrackAdapter(Context context, ArrayList<JSONObject> tracks){
         mContext = context;
 
         if(tracks != null) {
@@ -53,7 +57,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     }
 
     public interface onTrackClickListener{
-        void onTrackClick(int position, Track track);
+        void onTrackClick(int position, JSONObject track);
     }
 
     public void setOnTrackClickListener(onTrackClickListener l){
@@ -79,10 +83,20 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     // Replace contents of view (invoked by Layout Manager)
     @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, int position){
-        final Track track = mTracks.get(position);
-        String title = track.getTitle();
-        String artist = track.getUser().getUsername();
-        String trackImage = track.getArtworkUrl();
+        String title;
+        String artist;
+        String trackImage;
+
+        final JSONObject track = mTracks.get(position);
+
+        try{
+            title = track.getString("title");
+            artist = track.getJSONObject("user").getString("username");
+            trackImage = track.getString("artwork_url");
+        }catch(JSONException e){
+            Log.e(LOG_TAG, "Unable to retrieve track data.", e);
+            return;
+        }
 
         // Set the item's title and artist info
         holder.trackTitle.setText(title);
@@ -91,7 +105,19 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
         // Set the item's text color
         int textColor = ContextCompat.getColor(mContext, R.color.colorText);
 
-        if(mSelectedTrack != null && track.getId().equals(mSelectedTrack.getId())){
+        long trackId = -1;
+        long selectedTrackId = -2;
+
+        try{
+            trackId = track.getLong("id");
+            if(mSelectedTrack != null) {
+                selectedTrackId = mSelectedTrack.getLong("id");
+            }
+        }catch(JSONException e){
+            Log.e(LOG_TAG, "Unable to retrieve track or selected track id", e);
+        }
+
+        if(mSelectedTrack != null && trackId == selectedTrackId){
             textColor = ContextCompat.getColor(mContext, R.color.colorPrimary);
         }
 
@@ -132,15 +158,19 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     // Return the size of the dataset (invoked by Layout Manager)
     @Override
     public int getItemCount(){
+        if(mTracks == null){
+            Log.wtf(LOG_TAG, "How the fuck are you null?!");
+            return 0;
+        }
         return mTracks.size();
     }
 
-    public void updateTracks(ArrayList<Track> tracks){
+    public void updateTracks(ArrayList<JSONObject> tracks){
         mTracks = tracks;
         notifyDataSetChanged();
     }
 
-    public void setSelectedTrack(Track selectedTrack){
+    public void setSelectedTrack(JSONObject selectedTrack){
         mSelectedTrack = selectedTrack;
         notifyDataSetChanged();
     }

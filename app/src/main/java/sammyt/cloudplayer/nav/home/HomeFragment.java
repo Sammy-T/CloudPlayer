@@ -17,6 +17,17 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Track;
@@ -64,13 +75,14 @@ public class HomeFragment extends Fragment {
         mTrackRecycler.setAdapter(mAdapter);
 
         // Observe the View Model to update the adapter
-        trackViewModel.getTracks().observe(this, new Observer<ArrayList<Track>>() {
+        trackViewModel.getTracks().observe(getViewLifecycleOwner(), new Observer<ArrayList<JSONObject>>() {
             @Override
-            public void onChanged(ArrayList<Track> tracks) {
+            public void onChanged(ArrayList<JSONObject> tracks) {
                 String logMessage = "ViewModel onChanged - ";
 
                 if(tracks == null){
-                    loadTrackData();
+//                    loadTrackData();
+                    loadTrackDataFromVolley();
                 }else{
                     setVisibleView(VisibleView.loaded);
                 }
@@ -105,7 +117,8 @@ public class HomeFragment extends Fragment {
         titleView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadTrackData();
+//                loadTrackData();
+                loadTrackDataFromVolley();
             }
         });
 
@@ -114,7 +127,8 @@ public class HomeFragment extends Fragment {
         retryLoading.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadTrackData();
+//                loadTrackData();
+                loadTrackDataFromVolley();
             }
         });
 
@@ -123,8 +137,8 @@ public class HomeFragment extends Fragment {
 
     private TrackAdapter.onTrackClickListener mTrackClickListener = new TrackAdapter.onTrackClickListener() {
         @Override
-        public void onTrackClick(int position, Track track) {
-            Log.d(LOG_TAG, "Track Clicked - " + position + " " + track.getTitle() + " " + track);
+        public void onTrackClick(int position, JSONObject track) {
+            //Log.d(LOG_TAG, "Track Clicked - " + position + " " + track.getTitle() + " " + track);
 
             selectedTrackModel.setSelectedTrack(position, track, trackViewModel.getTracks().getValue(), LOG_TAG);
         }
@@ -145,7 +159,7 @@ public class HomeFragment extends Fragment {
         trackDataTask.setOnFinishListener(new TracksTask.onFinishListener() {
             @Override
             public void onFinish(User user, ArrayList<Track> faveTracks) {
-                trackViewModel.setTracks(faveTracks);
+//                trackViewModel.setTracks(faveTracks);
             }
 
             @Override
@@ -153,6 +167,49 @@ public class HomeFragment extends Fragment {
                 setVisibleView(VisibleView.error);
             }
         });
+    }
+
+    private void loadTrackDataFromVolley(){
+        RequestQueue queue = Volley.newRequestQueue(getContext());
+
+        String url = "https://api.soundcloud.com/users/42908683/favorites.json?client_id=" + getString(R.string.client_id);
+
+        JsonArrayRequest jsonRequest = new JsonArrayRequest(
+                Request.Method.GET,
+                url,
+                null,
+                new Response.Listener<JSONArray>(){
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        Log.d(LOG_TAG, "Volley response:\n" + response);
+
+                        try{
+                            ArrayList<JSONObject> tracks = new ArrayList<>();
+
+                            for(int i = 0; i < response.length(); i++) {
+                                JSONObject jsonObject = response.getJSONObject(i);
+                                Log.d(LOG_TAG, "Volley item: " + jsonObject);
+
+                                tracks.add(jsonObject);
+                            }
+
+                            trackViewModel.setTracks(tracks);
+
+                        }catch(JSONException e){
+                            Log.e(LOG_TAG, "JSON EXC: \n", e);
+                            setVisibleView(VisibleView.error);
+                        }
+                    }
+                },
+                new Response.ErrorListener(){
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e(LOG_TAG, "Volley error loading tracks.", error);
+                        setVisibleView(VisibleView.error);
+                    }
+                });
+
+        queue.add(jsonRequest);
     }
 
     private void setVisibleView(VisibleView visibleView){

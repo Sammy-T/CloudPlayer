@@ -21,9 +21,19 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.Volley;
 import com.jay.widget.StickyHeadersLinearLayoutManager;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 
@@ -35,6 +45,7 @@ import sammyt.cloudplayer.nav.TrackAdapter;
 import sammyt.cloudplayer.data_sc.TracksTask;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.nav.TrackViewModel;
+import sammyt.cloudplayer.nav.home.HomeFragment;
 
 public class ArtistsFragment extends Fragment {
 
@@ -52,7 +63,7 @@ public class ArtistsFragment extends Fragment {
     private ArtistsAdapter mAdapter;
     private TrackAdapter mTrackAdapter;
 
-    private ArrayList<Track> mArtistTracks = new ArrayList<>();
+    private ArrayList<JSONObject> mArtistTracks = new ArrayList<>();
 
     private enum VisibleView{
         loading, loaded, error
@@ -101,9 +112,9 @@ public class ArtistsFragment extends Fragment {
         mTrackAdapter.setOnTrackClickListener(mTrackClickListener);
         artistTrackRecycler.setAdapter(mTrackAdapter);
 
-        trackViewModel.getTracks().observe(this, new Observer<ArrayList<Track>>() {
+        trackViewModel.getTracks().observe(getViewLifecycleOwner(), new Observer<ArrayList<JSONObject>>() {
             @Override
-            public void onChanged(ArrayList<Track> tracks) {
+            public void onChanged(ArrayList<JSONObject> tracks) {
                 String logMessage = "ViewModel onChanged - ";
 
                 if(tracks == null){
@@ -136,7 +147,7 @@ public class ArtistsFragment extends Fragment {
         titleView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadTrackData();
+                loadTrackDataFromVolley();
             }
         });
 
@@ -145,7 +156,7 @@ public class ArtistsFragment extends Fragment {
         retryLoading.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadTrackData();
+                loadTrackDataFromVolley();
             }
         });
 
@@ -173,14 +184,14 @@ public class ArtistsFragment extends Fragment {
 
     private ArtistsAdapter.OnArtistClickListener mArtistClickListener = new ArtistsAdapter.OnArtistClickListener() {
         @Override
-        public void onArtistClick(int position, User artist) {
+        public void onArtistClick(int position, JSONObject artist) {
             selectArtist(artist);
         }
     };
 
     private TrackAdapter.onTrackClickListener mTrackClickListener = new TrackAdapter.onTrackClickListener() {
         @Override
-        public void onTrackClick(int position, Track track) {
+        public void onTrackClick(int position, JSONObject track) {
             selectedTrackModel.setSelectedTrack(position, track, mArtistTracks, LOG_TAG);
         }
     };
@@ -200,7 +211,7 @@ public class ArtistsFragment extends Fragment {
         trackDataTask.setOnFinishListener(new TracksTask.onFinishListener() {
             @Override
             public void onFinish(User user, ArrayList<Track> faveTracks) {
-                trackViewModel.setTracks(faveTracks);
+//                trackViewModel.setTracks(faveTracks);
             }
 
             @Override
@@ -210,9 +221,52 @@ public class ArtistsFragment extends Fragment {
         });
     }
 
-    private void selectArtist(User artist){
-        String title = artist.getUsername();
-        final String rawUrl = artist.getAvatarUrl();
+    private void loadTrackDataFromVolley(){
+        RequestQueue queue = Volley.newRequestQueue(getContext());
+
+        String url = "https://api.soundcloud.com/users/42908683/favorites.json?client_id=" + getString(R.string.client_id);
+
+        JsonArrayRequest jsonRequest = new JsonArrayRequest(
+                Request.Method.GET,
+                url,
+                null,
+                new Response.Listener<JSONArray>(){
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        Log.d(LOG_TAG, "Volley response:\n" + response);
+
+                        try{
+                            ArrayList<JSONObject> tracks = new ArrayList<>();
+
+                            for(int i = 0; i < response.length(); i++) {
+                                JSONObject jsonObject = response.getJSONObject(i);
+                                Log.d(LOG_TAG, "Volley item: " + jsonObject);
+
+                                tracks.add(jsonObject);
+                            }
+
+                            trackViewModel.setTracks(tracks);
+
+                        }catch(JSONException e){
+                            Log.e(LOG_TAG, "JSON EXC: \n", e);
+                            setVisibleView(VisibleView.error);
+                        }
+                    }
+                },
+                new Response.ErrorListener(){
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e(LOG_TAG, "Volley error loading tracks.", error);
+                        setVisibleView(VisibleView.error);
+                    }
+                });
+
+        queue.add(jsonRequest);
+    }
+
+    private void selectArtist(JSONObject artist){
+        String title = artist.optString("username");
+        final String rawUrl = artist.optString("avatar_url");
 
         mArtistTitle.setText(title);
 
@@ -228,11 +282,11 @@ public class ArtistsFragment extends Fragment {
         });
     }
 
-    private void setArtistTracks(final User artist){
+    private void setArtistTracks(final JSONObject artist){
         new Thread(new Runnable() {
             @Override
             public void run() {
-                ArrayList<Track> allTracks = trackViewModel.getTracks().getValue();
+                ArrayList<JSONObject> allTracks = trackViewModel.getTracks().getValue();
 
                 mArtistTracks.clear();
 
@@ -241,10 +295,15 @@ public class ArtistsFragment extends Fragment {
                     return;
                 }
 
-                for(Track track: allTracks){
-                    if(track.getUser().getId().equals(artist.getId())){
-                        mArtistTracks.add(track);
+                try{
+                    for (JSONObject track : allTracks) {
+                        if (track.getJSONObject("user").getLong("id") == artist.getLong("id")) {
+                            mArtistTracks.add(track);
+                        }
                     }
+                }catch(JSONException e){
+                    Log.e(LOG_TAG, "Unable to set artist tracks.", e);
+                    return;
                 }
 
                 mTrackAdapter.updateTracks(mArtistTracks);

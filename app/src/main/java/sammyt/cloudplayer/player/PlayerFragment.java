@@ -34,6 +34,9 @@ import com.google.android.material.snackbar.Snackbar;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -269,14 +272,22 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
             ImageViewCompat.setImageTintList(mRepeat, ColorStateList.valueOf(repeatColor));
         }
 
-        Track track = mService.getCurrentTrack();
+        JSONObject track = mService.getCurrentTrack();
         if(track == null){
             return;
         }
 
         // Update the track info
-        String title = track.getTitle();
-        String artist = track.getUser().getUsername();
+        String title;
+        String artist;
+
+        try{
+            title = track.getString("title");
+            artist = track.getJSONObject("user").getString("username");
+        }catch(JSONException e){
+            Log.e(LOG_TAG, "Unable to get track info.", e);
+            return;
+        }
 
         mTitleView.setText(title);
         mArtistView.setText(artist);
@@ -285,9 +296,9 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         int width = mImageView.getWidth();
         int height = mImageView.getHeight();
 
-        String rawUrl = track.getArtworkUrl();
+        String rawUrl = track.optString("artwork_url");
 
-        if(rawUrl != null){
+        if(rawUrl != null && !rawUrl.equals("")){
             final String trackArtUrl = rawUrl.replace("large", "t500x500");
 
             // Load the track image
@@ -356,7 +367,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
     }
 
     // Player Service Interface method
-    public void onTrackLoaded(int trackPos, Track track){
+    public void onTrackLoaded(int trackPos, JSONObject track){
         updateUI();
     }
 
