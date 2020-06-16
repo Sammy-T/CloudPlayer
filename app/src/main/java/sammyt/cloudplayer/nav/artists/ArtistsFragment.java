@@ -17,7 +17,7 @@ import android.widget.ViewSwitcher;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -25,9 +25,7 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
 import com.jay.widget.StickyHeadersLinearLayoutManager;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
@@ -42,11 +40,11 @@ import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
+import sammyt.cloudplayer.data_sc.CloudQueue;
 import sammyt.cloudplayer.nav.TrackAdapter;
 import sammyt.cloudplayer.data_sc.TracksTask;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.nav.TrackViewModel;
-import sammyt.cloudplayer.nav.home.HomeFragment;
 
 public class ArtistsFragment extends Fragment {
 
@@ -68,16 +66,16 @@ public class ArtistsFragment extends Fragment {
 
     private ArrayList<JSONObject> mTracks = new ArrayList<>();
 
-    private RequestQueue mQueue;
-
     private enum VisibleView{
         loading, loaded, error
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        trackViewModel = ViewModelProviders.of(getActivity()).get(TrackViewModel.class);
-        selectedTrackModel = ViewModelProviders.of(getActivity()).get(SelectedTrackModel.class);
+        ViewModelProvider activityModelProvider = new ViewModelProvider(getActivity());
+
+        trackViewModel = activityModelProvider.get(TrackViewModel.class);
+        selectedTrackModel = activityModelProvider.get(SelectedTrackModel.class);
 
         View root = inflater.inflate(R.layout.fragment_artists, container, false);
         mLoadingView = root.findViewById(R.id.loading);
@@ -123,7 +121,8 @@ public class ArtistsFragment extends Fragment {
                 String logMessage = "ViewModel onChanged - ";
 
                 if(tracks == null){
-                    loadTrackData();
+                    logMessage += "New load ";
+                    loadTrackDataFromVolley(null);
                 }else{
                     setVisibleView(VisibleView.loaded);
                 }
@@ -227,9 +226,7 @@ public class ArtistsFragment extends Fragment {
     }
 
     private void loadTrackDataFromVolley(String url){
-        if(mQueue == null) {
-            mQueue = Volley.newRequestQueue(getContext());
-        }
+        RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
 
         final String clientAuth = "&client_id=" + getString(R.string.client_id);
 
@@ -253,7 +250,7 @@ public class ArtistsFragment extends Fragment {
 
                     for(int i=0; i < collection.length(); i++){
                         JSONObject jsonObject = collection.getJSONObject(i);
-                        Log.d(LOG_TAG, "Volley item: " + jsonObject);
+//                        Log.d(LOG_TAG, "Volley item: " + jsonObject);
 
                         mTracks.add(jsonObject);
                     }
@@ -286,7 +283,7 @@ public class ArtistsFragment extends Fragment {
                 responseListener,
                 errorListener);
 
-        mQueue.add(jsonRequest);
+        queue.add(jsonRequest);
     }
 
     private void selectArtist(JSONObject artist){

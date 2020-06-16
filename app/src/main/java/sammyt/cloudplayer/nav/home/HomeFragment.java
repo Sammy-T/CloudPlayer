@@ -13,7 +13,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -21,10 +21,7 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
-import com.google.gson.JsonObject;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,6 +33,7 @@ import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
 
 import sammyt.cloudplayer.R;
+import sammyt.cloudplayer.data_sc.CloudQueue;
 import sammyt.cloudplayer.nav.TrackAdapter;
 import sammyt.cloudplayer.data_sc.TracksTask;
 import sammyt.cloudplayer.nav.TrackViewModel;
@@ -55,16 +53,16 @@ public class HomeFragment extends Fragment {
 
     private ArrayList<JSONObject> mTracks = new ArrayList<>();
 
-    private RequestQueue mQueue;
-
     private enum VisibleView{
         loading, loaded, error
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        trackViewModel = ViewModelProviders.of(getActivity()).get(TrackViewModel.class);
-        selectedTrackModel = ViewModelProviders.of(getActivity()).get(SelectedTrackModel.class);
+        ViewModelProvider activityModelProvider = new ViewModelProvider(getActivity());
+
+        trackViewModel = activityModelProvider.get(TrackViewModel.class);
+        selectedTrackModel = activityModelProvider.get(SelectedTrackModel.class);
 
         View root = inflater.inflate(R.layout.fragment_home, container, false);
         TextView titleView = root.findViewById(R.id.title_liked_text);
@@ -87,7 +85,7 @@ public class HomeFragment extends Fragment {
                 String logMessage = "ViewModel onChanged - ";
 
                 if(tracks == null){
-//                    loadTrackData();
+                    logMessage += "New load ";
                     loadTrackDataFromVolley(null);
                 }else{
                     setVisibleView(VisibleView.loaded);
@@ -123,7 +121,6 @@ public class HomeFragment extends Fragment {
         titleView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                loadTrackData();
                 loadTrackDataFromVolley(null);
             }
         });
@@ -133,7 +130,6 @@ public class HomeFragment extends Fragment {
         retryLoading.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                loadTrackData();
                 loadTrackDataFromVolley(null);
             }
         });
@@ -144,7 +140,7 @@ public class HomeFragment extends Fragment {
     private TrackAdapter.onTrackClickListener mTrackClickListener = new TrackAdapter.onTrackClickListener() {
         @Override
         public void onTrackClick(int position, JSONObject track) {
-            //Log.d(LOG_TAG, "Track Clicked - " + position + " " + track.getTitle() + " " + track);
+            Log.d(LOG_TAG, "Track Clicked - " + position + " " + track.optString("title") + " " + track);
 
             selectedTrackModel.setSelectedTrack(position, track, trackViewModel.getTracks().getValue(), LOG_TAG);
         }
@@ -176,9 +172,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadTrackDataFromVolley(String url){
-        if(mQueue == null) {
-            mQueue = Volley.newRequestQueue(getContext());
-        }
+        RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
 
         final String clientAuth = "&client_id=" + getString(R.string.client_id);
 
@@ -202,7 +196,7 @@ public class HomeFragment extends Fragment {
 
                     for(int i=0; i < collection.length(); i++){
                         JSONObject jsonObject = collection.getJSONObject(i);
-                        Log.d(LOG_TAG, "Volley item: " + jsonObject);
+//                        Log.d(LOG_TAG, "Volley item: " + jsonObject);
 
                         mTracks.add(jsonObject);
                     }
@@ -235,7 +229,7 @@ public class HomeFragment extends Fragment {
                 responseListener,
                 errorListener);
 
-        mQueue.add(jsonRequest);
+        queue.add(jsonRequest);
     }
 
     private void setVisibleView(VisibleView visibleView){
