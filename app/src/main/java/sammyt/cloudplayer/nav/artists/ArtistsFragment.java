@@ -26,6 +26,7 @@ import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.jay.widget.StickyHeadersLinearLayoutManager;
 import com.squareup.picasso.Callback;
@@ -64,6 +65,10 @@ public class ArtistsFragment extends Fragment {
     private TrackAdapter mTrackAdapter;
 
     private ArrayList<JSONObject> mArtistTracks = new ArrayList<>();
+
+    private ArrayList<JSONObject> mTracks = new ArrayList<>();
+
+    private RequestQueue mQueue;
 
     private enum VisibleView{
         loading, loaded, error
@@ -147,7 +152,7 @@ public class ArtistsFragment extends Fragment {
         titleView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadTrackDataFromVolley();
+                loadTrackDataFromVolley(null);
             }
         });
 
@@ -156,7 +161,7 @@ public class ArtistsFragment extends Fragment {
         retryLoading.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadTrackDataFromVolley();
+                loadTrackDataFromVolley(null);
             }
         });
 
@@ -221,48 +226,67 @@ public class ArtistsFragment extends Fragment {
         });
     }
 
-    private void loadTrackDataFromVolley(){
-        RequestQueue queue = Volley.newRequestQueue(getContext());
+    private void loadTrackDataFromVolley(String url){
+        if(mQueue == null) {
+            mQueue = Volley.newRequestQueue(getContext());
+        }
 
-        String url = "https://api.soundcloud.com/users/" + getString(R.string.user_id)
-                + "/favorites.json?client_id=" + getString(R.string.client_id);
+        final String clientAuth = "&client_id=" + getString(R.string.client_id);
 
-        JsonArrayRequest jsonRequest = new JsonArrayRequest(
+        if(url == null) {
+            url = "https://api.soundcloud.com/users/" + getString(R.string.user_id)
+                    + "/favorites.json?linked_partitioning=1" + clientAuth;
+
+            mTracks.clear();
+        }
+
+        Response.Listener<JSONObject> responseListener = new Response.Listener<JSONObject>(){
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d(LOG_TAG, "Volley response:\n" + response);
+
+                try{
+                    JSONArray collection = response.getJSONArray("collection");
+                    String nextPage = response.optString("next_href");
+
+                    Log.d(LOG_TAG, "SC next page: " + nextPage);
+
+                    for(int i=0; i < collection.length(); i++){
+                        JSONObject jsonObject = collection.getJSONObject(i);
+                        Log.d(LOG_TAG, "Volley item: " + jsonObject);
+
+                        mTracks.add(jsonObject);
+                    }
+
+                    if(!nextPage.equals("")){
+                        loadTrackDataFromVolley(nextPage + clientAuth);
+                    }else{
+                        trackViewModel.setTracks(mTracks);
+                    }
+
+                }catch(JSONException e){
+                    Log.e(LOG_TAG, "JSON EXC: \n", e);
+                    setVisibleView(VisibleView.error);
+                }
+            }
+        };
+
+        Response.ErrorListener errorListener = new Response.ErrorListener(){
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e(LOG_TAG, "Volley error loading tracks.", error);
+                setVisibleView(VisibleView.error);
+            }
+        };
+
+        JsonObjectRequest jsonRequest = new JsonObjectRequest(
                 Request.Method.GET,
                 url,
                 null,
-                new Response.Listener<JSONArray>(){
-                    @Override
-                    public void onResponse(JSONArray response) {
-                        Log.d(LOG_TAG, "Volley response:\n" + response);
+                responseListener,
+                errorListener);
 
-                        try{
-                            ArrayList<JSONObject> tracks = new ArrayList<>();
-
-                            for(int i = 0; i < response.length(); i++) {
-                                JSONObject jsonObject = response.getJSONObject(i);
-//                                Log.d(LOG_TAG, "Volley item: " + jsonObject);
-
-                                tracks.add(jsonObject);
-                            }
-
-                            trackViewModel.setTracks(tracks);
-
-                        }catch(JSONException e){
-                            Log.e(LOG_TAG, "JSON EXC: \n", e);
-                            setVisibleView(VisibleView.error);
-                        }
-                    }
-                },
-                new Response.ErrorListener(){
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Log.e(LOG_TAG, "Volley error loading tracks.", error);
-                        setVisibleView(VisibleView.error);
-                    }
-                });
-
-        queue.add(jsonRequest);
+        mQueue.add(jsonRequest);
     }
 
     private void selectArtist(JSONObject artist){

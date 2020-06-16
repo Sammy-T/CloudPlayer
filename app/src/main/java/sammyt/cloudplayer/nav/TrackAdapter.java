@@ -166,7 +166,16 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     }
 
     public void updateTracks(ArrayList<JSONObject> tracks){
-        mTracks = tracks;
+        if(mTracks == null || mTracks.size() == 0) {
+            mTracks = tracks;
+        }else{
+            mTracks.addAll(tracks);
+        }
+        notifyDataSetChanged();
+    }
+
+    public void clearTracks(){
+        mTracks = null;
         notifyDataSetChanged();
     }
 
