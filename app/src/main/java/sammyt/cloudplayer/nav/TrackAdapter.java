@@ -159,23 +159,14 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     @Override
     public int getItemCount(){
         if(mTracks == null){
-            Log.wtf(LOG_TAG, "How the fuck are you null?!");
+            Log.wtf(LOG_TAG, "How the f*ck are you null?!");
             return 0;
         }
         return mTracks.size();
     }
 
     public void updateTracks(ArrayList<JSONObject> tracks){
-        if(mTracks == null || mTracks.size() == 0) {
-            mTracks = tracks;
-        }else{
-            mTracks.addAll(tracks);
-        }
-        notifyDataSetChanged();
-    }
-
-    public void clearTracks(){
-        mTracks = null;
+        mTracks = tracks;
         notifyDataSetChanged();
     }
 
