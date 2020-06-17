@@ -58,6 +58,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="6dp"
+        android:max="1000"
         app:layout_constraintTop_toBottomOf="@id/track_artist" />
     <TextView
         android:id="@+id/track_time"

@@ -379,6 +379,9 @@ public class PlayerService extends Service {
                         }
 
                         // Start playback monitoring
+                        if(mFuture != null){
+                            mFuture.cancel(true);
+                        }
                         mFuture = mExecutor.scheduleAtFixedRate(mProgressHelperRunnable, 0, 1, TimeUnit.SECONDS);
 
                         // Build the Media Notification & place the service in the foreground
@@ -431,7 +434,7 @@ public class PlayerService extends Service {
 
     @SuppressLint("RestrictedApi")
     public void seekTo(float progress){
-        long progressPos = (long)(progress / 100 * mPlayer.getDuration());
+        long progressPos = (long)(progress / 1000 * mPlayer.getDuration());
 
         mPlayer.seekTo(progressPos);
     }

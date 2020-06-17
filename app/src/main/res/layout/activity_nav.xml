@@ -66,7 +66,8 @@
             android:layout_width="match_parent"
             android:layout_height="4dp"
             android:scaleY="1"
-            android:progress="50"
+            android:progress="500"
+            android:max="1000"
             android:layout_margin="0dp"
             android:layout_below="@id/mini_control_area"
             style="@style/Widget.AppCompat.ProgressBar.Horizontal" />

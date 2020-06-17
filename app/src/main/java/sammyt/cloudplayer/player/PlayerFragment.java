@@ -182,7 +182,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         mQueue.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getFragmentManager().beginTransaction()
+                getParentFragmentManager().beginTransaction()
                         .replace(R.id.content_container, new QueueFragment(), QUEUE_FRAGMENT)
                         .addToBackStack(QUEUE_FRAGMENT)
                         .commit();
@@ -373,8 +373,8 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
 
     // Player Service Interface method
     public void onPlayback(float duration, float currentPos, float bufferPos){
-        int progress = (int) (currentPos / duration * 100);
-        int bufferProgress = (int) (bufferPos / duration * 100);
+        int progress = (int) (currentPos / duration * 1000);
+        int bufferProgress = (int) (bufferPos / duration * 1000);
 
         if(!mIsDragging){
             mSeekBar.setProgress(progress);

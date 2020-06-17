@@ -18,6 +18,7 @@ import com.squareup.picasso.Picasso;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -81,7 +82,7 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         NavigationUI.setupWithNavController(navView, navController);
 
-        selectedTrackModel = ViewModelProviders.of(this).get(SelectedTrackModel.class);
+        selectedTrackModel = new ViewModelProvider(this).get(SelectedTrackModel.class);
 
         // Observe the shared View Model to update the service's track list & load the selected track
         selectedTrackModel.getSelectedTrack().observe(this, new Observer<SelectedTrackModel.SelectedTrack>() {
@@ -218,7 +219,7 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
 
     // From the Player Service Interface
     public void onPlayback(float duration, float currentPos, float bufferPos){
-        int progress = (int) (currentPos / duration * 100);
+        int progress = (int) (currentPos / duration * 1000);
         mProgress.setProgress(progress);
     }
 
