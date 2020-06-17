@@ -1,5 +1,6 @@
 package sammyt.cloudplayer;
 
+import android.animation.ObjectAnimator;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -8,6 +9,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.LinearInterpolator;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
@@ -19,7 +21,6 @@ import com.squareup.picasso.Picasso;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModelProviders;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.NavigationUI;
@@ -27,7 +28,6 @@ import androidx.navigation.ui.NavigationUI;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import de.voidplus.soundcloud.Track;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.player.PlayerActivity;
 
@@ -46,6 +46,8 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
     private PlayerService mService;
     private boolean mBound = false;
     private boolean mListenerConnected = false;
+
+    private ObjectAnimator mProgressAnim;
 
     private onBackListener mBackListener;
 
@@ -81,6 +83,12 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
         // Set up the bottom navigation view with the Nav Controller
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         NavigationUI.setupWithNavController(navView, navController);
+
+        mProgressAnim = new ObjectAnimator();
+        mProgressAnim.setTarget(mProgress);
+        mProgressAnim.setPropertyName("progress");
+        mProgressAnim.setDuration(1000);
+        mProgressAnim.setInterpolator(new LinearInterpolator());
 
         selectedTrackModel = new ViewModelProvider(this).get(SelectedTrackModel.class);
 
@@ -220,7 +228,10 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
     // From the Player Service Interface
     public void onPlayback(float duration, float currentPos, float bufferPos){
         int progress = (int) (currentPos / duration * 1000);
-        mProgress.setProgress(progress);
+
+        // Animate the change in progress
+        mProgressAnim.setIntValues(progress);
+        mProgressAnim.start();
     }
 
     // From the Player Service Interface

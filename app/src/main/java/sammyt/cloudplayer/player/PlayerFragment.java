@@ -2,6 +2,7 @@ package sammyt.cloudplayer.player;
 
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -25,6 +26,7 @@ import android.view.LayoutInflater;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.LinearInterpolator;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
@@ -41,7 +43,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
-import de.voidplus.soundcloud.Track;
 import me.bogerchan.niervisualizer.NierVisualizerManager;
 import me.bogerchan.niervisualizer.renderer.IRenderer;
 import me.bogerchan.niervisualizer.renderer.columnar.ColumnarType1Renderer;
@@ -75,6 +76,9 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
     private ImageButton mRepeat;
     private ImageButton mQueue;
     private ImageButton mBack;
+
+    private ObjectAnimator mProgressAnim;
+    private ObjectAnimator mSecProgressAnim;
 
     private NierVisualizerManager mVisualizerManager;
 
@@ -111,6 +115,19 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         mTitleView.setSingleLine(true);
         mTitleView.setEllipsize(TextUtils.TruncateAt.MARQUEE);
         mTitleView.setSelected(true);
+
+        // Set up the Seekbar animations
+        mProgressAnim = new ObjectAnimator();
+        mProgressAnim.setTarget(mSeekBar);
+        mProgressAnim.setPropertyName("progress");
+        mProgressAnim.setDuration(1000);
+        mProgressAnim.setInterpolator(new LinearInterpolator());
+
+        mSecProgressAnim = new ObjectAnimator();
+        mSecProgressAnim.setTarget(mSeekBar);
+        mSecProgressAnim.setPropertyName("secondaryProgress");
+        mSecProgressAnim.setDuration(1000);
+        mSecProgressAnim.setInterpolator(new LinearInterpolator());
 
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -377,8 +394,12 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         int bufferProgress = (int) (bufferPos / duration * 1000);
 
         if(!mIsDragging){
-            mSeekBar.setProgress(progress);
-            mSeekBar.setSecondaryProgress(bufferProgress);
+            // Animate the change in progress and buffer values
+            mProgressAnim.setIntValues(progress);
+            mProgressAnim.start();
+
+            mSecProgressAnim.setIntValues(bufferProgress);
+            mSecProgressAnim.start();
         }
 
         // Build the time display of the track
