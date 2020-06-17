@@ -50,9 +50,10 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-
-import de.voidplus.soundcloud.Track;
-import de.voidplus.soundcloud.User;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public class PlayerService extends Service {
 
@@ -79,7 +80,9 @@ public class PlayerService extends Service {
     private Uri mUri;
     private SimpleExoPlayer mPlayer;
     private DataSource.Factory mDataSourceFactory;
-    private Handler mPlaybackHandler = new Handler();
+    private Handler mHandler = new Handler();
+    private ScheduledExecutorService mExecutor;
+    private ScheduledFuture<?> mFuture;
     private int mSessionId;
 
     private AudioManager mAudioManager;
@@ -94,6 +97,14 @@ public class PlayerService extends Service {
         public PlayerService getService(){
             return PlayerService.this;
         }
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        Log.d(LOG_TAG, "PlayerService created.");
+        mExecutor = Executors.newSingleThreadScheduledExecutor();
     }
 
     @Override
@@ -139,6 +150,12 @@ public class PlayerService extends Service {
     public void onDestroy(){
         Log.d(LOG_TAG, "PlayerService destroyed");
         releasePlayer();
+
+        // Cancel and shutdown the playback monitoring executor
+        if(mFuture != null){
+            mFuture.cancel(true);
+        }
+        mExecutor.shutdown();
 
         super.onDestroy();
     }
@@ -326,8 +343,7 @@ public class PlayerService extends Service {
 
         mCurrentTrack = trackPos;
 
-        final Handler handler = new Handler();
-        new Thread(new Runnable() {
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 try{
@@ -336,11 +352,11 @@ public class PlayerService extends Service {
                 }catch(JSONException | NullPointerException e){
                     String message = "Error loading track. Possible Server Issue.";
                     Log.e(LOG_TAG, message, e);
-                    showTrackLoadError(handler, message);
+                    showTrackLoadError(message);
                     return;
                 }
 
-                handler.post(new Runnable() {
+                mHandler.post(new Runnable() {
                     @SuppressLint("RestrictedApi")
                     @Override
                     public void run() {
@@ -363,18 +379,18 @@ public class PlayerService extends Service {
                         }
 
                         // Start playback monitoring
-                        mPlaybackHandler.postDelayed(mProgressRunnable, 0);
+                        mFuture = mExecutor.scheduleAtFixedRate(mProgressHelperRunnable, 0, 1, TimeUnit.SECONDS);
 
                         // Build the Media Notification & place the service in the foreground
                         buildMediaNotification(mIsPlaying);
                     }
                 });
             }
-        }).start();
+        });
     }
 
-    private void showTrackLoadError(Handler handler, final String message){
-        handler.post(new Runnable() {
+    private void showTrackLoadError(final String message){
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
                 Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
@@ -382,16 +398,21 @@ public class PlayerService extends Service {
         });
     }
 
+    // This Runnable is a helper to make sure we're accessing the Player from the correct thread
+    // by using the Handler as the go-between
+    private Runnable mProgressHelperRunnable = new Runnable() {
+        @Override
+        public void run() {
+            mHandler.post(mProgressRunnable);
+        }
+    };
+
     // Keeps track of the player's current playback information
     // This Runnable will repeatedly call itself as long as the player isn't idle or ended
     private Runnable mProgressRunnable = new Runnable(){
         @SuppressLint("RestrictedApi")
         @Override
         public void run() {
-            mPlaybackHandler.removeCallbacks(mProgressRunnable); // Make sure we're only using one runnable
-
-            long delay = 1000; // Delay for one second
-
             // Provide the playback info to the listener callback
             if(mListener != null){
                 mListener.onPlayback(mPlayer.getDuration(), mPlayer.getCurrentPosition(),
@@ -400,9 +421,10 @@ public class PlayerService extends Service {
 
             int playbackState = mPlayer.getPlaybackState();
 
-            // Call this Runnable again if the player is in a valid state
-            if(playbackState != Player.STATE_IDLE && playbackState != Player.STATE_ENDED){
-                mPlaybackHandler.postDelayed(mProgressRunnable, delay);
+            // Cancel playback monitoring if the player is in an idle or ended state
+            if(playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED){
+                Log.d(LOG_TAG, "Cancelling playback progress future.");
+                mFuture.cancel(true);
             }
         }
     };
@@ -459,9 +481,13 @@ public class PlayerService extends Service {
 
         // Start or stop the playback monitoring depending on whether the track is playing
         if(mIsPlaying){
-            mPlaybackHandler.postDelayed(mProgressRunnable, 0);
+            mFuture = mExecutor.scheduleAtFixedRate(mProgressHelperRunnable, 0, 1, TimeUnit.SECONDS);
         }else{
-            mPlaybackHandler.removeCallbacks(mProgressRunnable);
+            if(mFuture != null){
+                Log.d(LOG_TAG, "Cancelling playback progress future.");
+                mFuture.cancel(true);
+            }
+
             abandonFocus(); // Remove the audio focus
         }
     }
@@ -479,7 +505,7 @@ public class PlayerService extends Service {
     }
 
     private void buildMediaNotification(final boolean setForeground){
-        new Thread(new Runnable() {
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 NotificationManager notificationManager = (NotificationManager) mContext
@@ -560,7 +586,7 @@ public class PlayerService extends Service {
                     notificationManager.notify(111, notifyBuilder.build());
                 }
             }
-        }).start();
+        });
     }
 
     @TargetApi(26)
