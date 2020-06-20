@@ -231,6 +231,10 @@ public class ArtistsFragment extends Fragment {
         final String clientAuth = "&client_id=" + getString(R.string.client_id);
 
         if(url == null) {
+            Log.d(LOG_TAG, "Loading track data from volley.");
+
+            setVisibleView(VisibleView.loading);
+
             url = "https://api.soundcloud.com/users/" + getString(R.string.user_id)
                     + "/favorites.json?linked_partitioning=1" + clientAuth;
 
