@@ -77,6 +77,8 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
     private ImageButton mQueue;
     private ImageButton mBack;
 
+    private SimpleDateFormat mDateFormat = new SimpleDateFormat("mm:ss", Locale.getDefault());
+
     private ObjectAnimator mProgressAnim;
     private ObjectAnimator mSecProgressAnim;
 
@@ -390,24 +392,28 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
 
     // Player Service Interface method
     public void onPlayback(float duration, float currentPos, float bufferPos){
-        int progress = (int) (currentPos / duration * 1000);
-        int bufferProgress = (int) (bufferPos / duration * 1000);
+        int progress = (int) ((currentPos / duration) * 1000);
+        int bufferProgress = (int) ((bufferPos / duration) * 1000);
+        int limit = (int) ((5f / 100f) * 1000);
 
         if(!mIsDragging){
-            // Animate the change in progress and buffer values
-            mProgressAnim.setIntValues(progress);
-            mProgressAnim.start();
+            if(Math.abs(progress - mSeekBar.getProgress()) >= limit){
+                // Set the progress without animating if there's a large change
+                mSeekBar.setProgress(progress);
+                mSeekBar.setSecondaryProgress(bufferProgress);
+            }else{
+                // Animate the change in progress and buffer values
+                mProgressAnim.setIntValues(progress);
+                mProgressAnim.start();
 
-            mSecProgressAnim.setIntValues(bufferProgress);
-            mSecProgressAnim.start();
+                mSecProgressAnim.setIntValues(bufferProgress);
+                mSecProgressAnim.start();
+            }
         }
 
         // Build the time display of the track
-        String currentText = new SimpleDateFormat("mm:ss", Locale.getDefault())
-                .format(new Date((long)currentPos));
-
-        String durationText = new SimpleDateFormat("mm:ss", Locale.getDefault())
-                .format(new Date((long)duration));
+        String currentText = mDateFormat.format(new Date((long)currentPos));
+        String durationText = mDateFormat.format(new Date((long)duration));
 
         String timeText = currentText + " / " + durationText;
         mTimeView.setText(timeText);

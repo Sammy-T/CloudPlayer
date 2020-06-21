@@ -227,7 +227,15 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
 
     // From the Player Service Interface
     public void onPlayback(float duration, float currentPos, float bufferPos){
-        int progress = (int) (currentPos / duration * 1000);
+        int progress = (int) ((currentPos / duration) * 1000);
+        int limit = (int) ((5f / 100f) * 1000);
+
+        // Set the progress without animating if there's a large change in progress
+        // (i.e. returning to the activity)
+        if(Math.abs(progress - mProgress.getProgress()) >= limit){
+            mProgress.setProgress(progress);
+            return;
+        }
 
         // Animate the change in progress
         mProgressAnim.setIntValues(progress);
