@@ -6,6 +6,7 @@
     android:id="@+id/content_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_gradient"
     tools:context=".player.PlayerActivity">
 
 </FrameLayout>
