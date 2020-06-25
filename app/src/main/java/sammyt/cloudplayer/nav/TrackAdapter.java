@@ -12,6 +12,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+import androidx.core.math.MathUtils;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.squareup.picasso.Picasso;
@@ -35,9 +36,6 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
     private int mStartColor = Color.parseColor("#000066");
     private int mEndColor = Color.parseColor("#660033");
-    private int mHueDirection = 1;
-    private float[] mHsvStep = new float[3];
-    private boolean mCalculateStep = true;
 
     private onTrackClickListener mListener;
 
@@ -92,19 +90,16 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, int position){
         // Set the item background color interpolating between start and end values
-        float[] startHSV = new float[3];
-        float[] endHSV = new float[3];
+        int[] startRGB = {Color.red(mStartColor), Color.green(mStartColor), Color.blue(mStartColor)};
+        int[] endRGB = {Color.red(mEndColor), Color.green(mEndColor), Color.blue(mEndColor)};
 
-        Color.colorToHSV(mStartColor, startHSV);
-        Color.colorToHSV(mEndColor, endHSV);
-
-        float[] valueHSV = getInterpolatedHSV(startHSV, endHSV, position);
-        int valueColor = Color.HSVToColor(115, valueHSV);
+        int[] valueRGB = getInterpolatedRGB(startRGB, endRGB, position);
+        int valueColor = Color.argb(115, valueRGB[0], valueRGB[1], valueRGB[2]);
 
         holder.trackItem.setBackgroundColor(valueColor);
 
-//        Log.d(LOG_TAG, "Start hsv: " + Arrays.toString(startHSV) + " End hsv: " + Arrays.toString(endHSV)
-//                +"\nhsv val: " + Arrays.toString(valueHSV));
+//        Log.d(LOG_TAG, "Start rgb: " + Arrays.toString(startRGB) + " End rgb: " + Arrays.toString(endRGB)
+//                +" rgb val: " + Arrays.toString(valueRGB));
 
         String title;
         String artist;
@@ -190,90 +185,48 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
     public void updateTracks(ArrayList<JSONObject> tracks){
         mTracks = tracks;
-        mCalculateStep = true;
         notifyDataSetChanged();
     }
 
     public void setSelectedTrack(JSONObject selectedTrack){
         mSelectedTrack = selectedTrack;
-        mCalculateStep = true;
         notifyDataSetChanged();
     }
 
-    private float getHueDistance(float startHue, float endHue){
-        float startOffset = 0;
-        float endOffset = 0;
+    private int[] getInterpolatedRGB(int[] startRGB, int[] endRGB, int position){
+        // Determine the direction relative to the start RGB value
+        int[] rgbDirection = {1, 1, 1};
 
-        if(startHue < endHue){
-            startOffset = 360;
-        }else if(endHue < startHue){
-            endOffset = 360;
+        if(startRGB[0] > endRGB[0]){
+            rgbDirection[0] = -1;
         }
 
-        // Compare regularly
-        // and compare with an offset to account for wrapping values towards the edges of 0 and 360
-        float hueDist = Math.abs(startHue - endHue);
-        float hueDistWrap = Math.abs((startHue + startOffset) - (endHue + endOffset));
-
-//        Log.d(LOG_TAG, "Hue dist: " + hueDist + " Hue dist(w): " + hueDistWrap);
-
-        float hueDistance = Math.min(hueDist, hueDistWrap);
-
-        // Determine the direction we're travelling around the hue wheel
-        if(hueDistance == hueDistWrap){
-            if(startHue < endHue){
-                mHueDirection = -1;
-            }else{
-                mHueDirection = 1;
-            }
-        }else{
-            if(startHue < endHue){
-                mHueDirection = 1;
-            }else{
-                mHueDirection = -1;
-            }
+        if(startRGB[1] > endRGB[1]){
+            rgbDirection[1] = -1;
         }
 
-        return hueDistance;
-    }
+        if(startRGB[2] > endRGB[2]){
+            rgbDirection[2] = -1;
+        }
 
-    private float[] getInterpolatedHSV(float[] startHSV, float[] endHSV, int position){
         // Calculate the increments
-        if(mCalculateStep){
-            mHsvStep[0] = getHueDistance(startHSV[0], endHSV[0]) / mTracks.size();
-            mHsvStep[1] = Math.abs(startHSV[1] - endHSV[1]) / mTracks.size();
-            mHsvStep[2] = Math.abs(startHSV[2] - endHSV[2]) / mTracks.size();
+        float[] rgbStep = new float[3];
+        rgbStep[0] = (float) Math.abs(startRGB[0] - endRGB[0]) / mTracks.size();
+        rgbStep[1] = (float) Math.abs(startRGB[1] - endRGB[1]) / mTracks.size();
+        rgbStep[2] = (float) Math.abs(startRGB[2] - endRGB[2]) / mTracks.size();
 
-            mCalculateStep = false;
-        }
+        // Calculate the RGB value for the set position
+        int[] value = new int[3];
+        value[0] = startRGB[0] + (int) ((rgbStep[0] * position) * rgbDirection[0]);
+        value[1] = startRGB[1] + (int) ((rgbStep[1] * position) * rgbDirection[1]);
+        value[2] = startRGB[2] + (int) ((rgbStep[2] * position) * rgbDirection[2]);
 
-        float[] value = new float[3];
+        // Clamp the values within RGB bounds
+        value[0] = MathUtils.clamp(value[0], 0, 255);
+        value[1] = MathUtils.clamp(value[1], 0, 255);
+        value[2] = MathUtils.clamp(value[2], 0, 255);
 
-        // Calculate the Hue at the set position
-        value[0] = startHSV[0] + ((mHsvStep[0] * position) * mHueDirection);
-
-        // Wrap the Hue if it's out of bounds
-        if(value[0] < 0){
-            value[0] = value[0] + 360;
-        }else if(value[0] > 360){
-            value[0] = value[0] - 360;
-        }
-
-        // Calculate the Saturation
-        if(startHSV[1] < endHSV[1]){
-            value[1] = startHSV[1] + (mHsvStep[1] * position);
-        }else{
-            value[1] = startHSV[1] - (mHsvStep[1] * position);
-        }
-
-        // Calculate the Value
-        if(startHSV[2] < endHSV[2]){
-            value[2] = startHSV[2] + (mHsvStep[2] * position);
-        }else{
-            value[2] = startHSV[2] - (mHsvStep[2] * position);
-        }
-
-//        Log.d(LOG_TAG, "hsv step: " + Arrays.toString(mHsvStep) + " hsv value: " + Arrays.toString(value));
+//        Log.d(LOG_TAG, "Step: " + Arrays.toString(rgbStep));
 
         return value;
     }
