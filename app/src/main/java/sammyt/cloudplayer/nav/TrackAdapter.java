@@ -12,7 +12,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
-import androidx.core.math.MathUtils;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.squareup.picasso.Picasso;
@@ -21,6 +20,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import de.voidplus.soundcloud.Track;
 import sammyt.cloudplayer.R;
@@ -35,6 +35,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
     private int mStartColor = Color.parseColor("#000066");
     private int mEndColor = Color.parseColor("#660033");
+    private int mHueDirection = 1;
     private float[] mHsvStep = new float[3];
     private boolean mCalculateStep = true;
 
@@ -98,12 +99,12 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
         Color.colorToHSV(mEndColor, endHSV);
 
         float[] valueHSV = getInterpolatedHSV(startHSV, endHSV, position);
-        int valueColor = Color.HSVToColor(valueHSV);
+        int valueColor = Color.HSVToColor(115, valueHSV);
 
         holder.trackItem.setBackgroundColor(valueColor);
 
 //        Log.d(LOG_TAG, "Start hsv: " + Arrays.toString(startHSV) + " End hsv: " + Arrays.toString(endHSV)
-//                +"\nval: " + Arrays.toString(valueHSV));
+//                +"\nhsv val: " + Arrays.toString(valueHSV));
 
         String title;
         String artist;
@@ -216,7 +217,24 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
 //        Log.d(LOG_TAG, "Hue dist: " + hueDist + " Hue dist(w): " + hueDistWrap);
 
-        return Math.min(hueDist, hueDistWrap);
+        float hueDistance = Math.min(hueDist, hueDistWrap);
+
+        // Determine the direction we're travelling around the hue wheel
+        if(hueDistance == hueDistWrap){
+            if(startHue < endHue){
+                mHueDirection = -1;
+            }else{
+                mHueDirection = 1;
+            }
+        }else{
+            if(startHue < endHue){
+                mHueDirection = 1;
+            }else{
+                mHueDirection = -1;
+            }
+        }
+
+        return hueDistance;
     }
 
     private float[] getInterpolatedHSV(float[] startHSV, float[] endHSV, int position){
@@ -231,31 +249,31 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
         float[] value = new float[3];
 
-        // Calculate the values at the set position
-        if(startHSV[0] < endHSV[0]){
-            value[0] = startHSV[0] + (mHsvStep[0] * position);
-        }else{
-            value[0] = startHSV[0] - (mHsvStep[0] * position);
+        // Calculate the Hue at the set position
+        value[0] = startHSV[0] + ((mHsvStep[0] * position) * mHueDirection);
+
+        // Wrap the Hue if it's out of bounds
+        if(value[0] < 0){
+            value[0] = value[0] + 360;
+        }else if(value[0] > 360){
+            value[0] = value[0] - 360;
         }
 
+        // Calculate the Saturation
         if(startHSV[1] < endHSV[1]){
             value[1] = startHSV[1] + (mHsvStep[1] * position);
         }else{
             value[1] = startHSV[1] - (mHsvStep[1] * position);
         }
 
+        // Calculate the Value
         if(startHSV[2] < endHSV[2]){
             value[2] = startHSV[2] + (mHsvStep[2] * position);
         }else{
             value[2] = startHSV[2] - (mHsvStep[2] * position);
         }
 
-        // Clamp the hsv values to their respective limits
-        value[0] = MathUtils.clamp(value[0], 0, 360);
-        value[1] = MathUtils.clamp(value[1], 0, 1);
-        value[2] = MathUtils.clamp(value[2], 0, 1);
-
-//        Log.d(LOG_TAG, "hsv step: " + Arrays.toString(hsvStep) + " hsv value: " + Arrays.toString(value));
+//        Log.d(LOG_TAG, "hsv step: " + Arrays.toString(mHsvStep) + " hsv value: " + Arrays.toString(value));
 
         return value;
     }
