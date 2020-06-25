@@ -1,6 +1,7 @@
 package sammyt.cloudplayer.nav;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +12,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+import androidx.core.math.MathUtils;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.squareup.picasso.Picasso;
@@ -30,6 +32,11 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     private Context mContext;
     private ArrayList<JSONObject> mTracks = new ArrayList<>();
     private JSONObject mSelectedTrack;
+
+    private int mStartColor = Color.parseColor("#000066");
+    private int mEndColor = Color.parseColor("#660033");
+    private float[] mHsvStep = new float[3];
+    private boolean mCalculateStep = true;
 
     private onTrackClickListener mListener;
 
@@ -83,6 +90,21 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     // Replace contents of view (invoked by Layout Manager)
     @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, int position){
+        // Set the item background color interpolating between start and end values
+        float[] startHSV = new float[3];
+        float[] endHSV = new float[3];
+
+        Color.colorToHSV(mStartColor, startHSV);
+        Color.colorToHSV(mEndColor, endHSV);
+
+        float[] valueHSV = getInterpolatedHSV(startHSV, endHSV, position);
+        int valueColor = Color.HSVToColor(valueHSV);
+
+        holder.trackItem.setBackgroundColor(valueColor);
+
+//        Log.d(LOG_TAG, "Start hsv: " + Arrays.toString(startHSV) + " End hsv: " + Arrays.toString(endHSV)
+//                +"\nval: " + Arrays.toString(valueHSV));
+
         String title;
         String artist;
         String trackImage;
@@ -167,11 +189,74 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
     public void updateTracks(ArrayList<JSONObject> tracks){
         mTracks = tracks;
+        mCalculateStep = true;
         notifyDataSetChanged();
     }
 
     public void setSelectedTrack(JSONObject selectedTrack){
         mSelectedTrack = selectedTrack;
+        mCalculateStep = true;
         notifyDataSetChanged();
+    }
+
+    private float getHueDistance(float startHue, float endHue){
+        float startOffset = 0;
+        float endOffset = 0;
+
+        if(startHue < endHue){
+            startOffset = 360;
+        }else if(endHue < startHue){
+            endOffset = 360;
+        }
+
+        // Compare regularly
+        // and compare with an offset to account for wrapping values towards the edges of 0 and 360
+        float hueDist = Math.abs(startHue - endHue);
+        float hueDistWrap = Math.abs((startHue + startOffset) - (endHue + endOffset));
+
+//        Log.d(LOG_TAG, "Hue dist: " + hueDist + " Hue dist(w): " + hueDistWrap);
+
+        return Math.min(hueDist, hueDistWrap);
+    }
+
+    private float[] getInterpolatedHSV(float[] startHSV, float[] endHSV, int position){
+        // Calculate the increments
+        if(mCalculateStep){
+            mHsvStep[0] = getHueDistance(startHSV[0], endHSV[0]) / mTracks.size();
+            mHsvStep[1] = Math.abs(startHSV[1] - endHSV[1]) / mTracks.size();
+            mHsvStep[2] = Math.abs(startHSV[2] - endHSV[2]) / mTracks.size();
+
+            mCalculateStep = false;
+        }
+
+        float[] value = new float[3];
+
+        // Calculate the values at the set position
+        if(startHSV[0] < endHSV[0]){
+            value[0] = startHSV[0] + (mHsvStep[0] * position);
+        }else{
+            value[0] = startHSV[0] - (mHsvStep[0] * position);
+        }
+
+        if(startHSV[1] < endHSV[1]){
+            value[1] = startHSV[1] + (mHsvStep[1] * position);
+        }else{
+            value[1] = startHSV[1] - (mHsvStep[1] * position);
+        }
+
+        if(startHSV[2] < endHSV[2]){
+            value[2] = startHSV[2] + (mHsvStep[2] * position);
+        }else{
+            value[2] = startHSV[2] - (mHsvStep[2] * position);
+        }
+
+        // Clamp the hsv values to their respective limits
+        value[0] = MathUtils.clamp(value[0], 0, 360);
+        value[1] = MathUtils.clamp(value[1], 0, 1);
+        value[2] = MathUtils.clamp(value[2], 0, 1);
+
+//        Log.d(LOG_TAG, "hsv step: " + Arrays.toString(hsvStep) + " hsv value: " + Arrays.toString(value));
+
+        return value;
     }
 }
