@@ -1,6 +1,7 @@
 package sammyt.cloudplayer.nav.artists;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -49,6 +50,8 @@ import sammyt.cloudplayer.nav.TrackViewModel;
 public class ArtistsFragment extends Fragment {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
+
+    private Handler mHandler = new Handler();
 
     private TrackViewModel trackViewModel;
     private SelectedTrackModel selectedTrackModel;
@@ -332,7 +335,13 @@ public class ArtistsFragment extends Fragment {
                     return;
                 }
 
-                mTrackAdapter.updateTracks(mArtistTracks);
+                // Make sure we're updating the adapter from the correct thread
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mTrackAdapter.updateTracks(mArtistTracks);
+                    }
+                });
             }
         }).start();
     }
