@@ -24,23 +24,24 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
-import androidx.media2.exoplayer.external.ExoPlaybackException;
-import androidx.media2.exoplayer.external.ExoPlayerFactory;
-import androidx.media2.exoplayer.external.Format;
-import androidx.media2.exoplayer.external.PlaybackParameters;
-import androidx.media2.exoplayer.external.Player;
-import androidx.media2.exoplayer.external.SimpleExoPlayer;
-import androidx.media2.exoplayer.external.analytics.AnalyticsListener;
-import androidx.media2.exoplayer.external.decoder.DecoderCounters;
-import androidx.media2.exoplayer.external.metadata.Metadata;
-import androidx.media2.exoplayer.external.source.MediaSource;
-import androidx.media2.exoplayer.external.source.MediaSourceEventListener;
-import androidx.media2.exoplayer.external.source.ProgressiveMediaSource;
-import androidx.media2.exoplayer.external.source.TrackGroupArray;
-import androidx.media2.exoplayer.external.trackselection.TrackSelectionArray;
-import androidx.media2.exoplayer.external.upstream.DataSource;
-import androidx.media2.exoplayer.external.upstream.DefaultDataSourceFactory;
-import androidx.media2.exoplayer.external.util.Util;
+
+import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.Format;
+import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.analytics.AnalyticsListener;
+import com.google.android.exoplayer2.decoder.DecoderCounters;
+import com.google.android.exoplayer2.metadata.Metadata;
+import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.MediaSourceEventListener;
+import com.google.android.exoplayer2.source.ProgressiveMediaSource;
+import com.google.android.exoplayer2.source.TrackGroupArray;
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
+import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.util.Util;
 
 import com.squareup.picasso.Picasso;
 
@@ -173,7 +174,7 @@ public class PlayerService extends Service {
     @SuppressLint("RestrictedApi")
     public void initPlayer(){
         if(mPlayer == null) {
-            mPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
+            mPlayer = new SimpleExoPlayer.Builder(mContext).build();
             mDataSourceFactory = new DefaultDataSourceFactory(mContext,
                     Util.getUserAgent(mContext, "Cloud Player"));
 
@@ -631,7 +632,7 @@ public class PlayerService extends Service {
     }
 
     @SuppressLint("RestrictedApi")
-    class PlayerAnalyticsListener implements AnalyticsListener{
+    class PlayerAnalyticsListener implements AnalyticsListener {
         
         public void onPlayerStateChanged(EventTime eventTime, boolean playWhenReady, int playbackState) {
             // Loads the next track when current track has ended
@@ -721,7 +722,7 @@ public class PlayerService extends Service {
         }
 
         public void onAudioAttributesChanged(EventTime eventTime,
-                                             androidx.media2.exoplayer.external.audio.AudioAttributes audioAttributes) { }
+                                             com.google.android.exoplayer2.audio.AudioAttributes audioAttributes) { }
 
         public void onVolumeChanged(EventTime eventTime, float volume) { }
 
