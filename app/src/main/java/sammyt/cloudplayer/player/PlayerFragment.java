@@ -270,9 +270,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
             playOrPause = R.drawable.ic_pause_black_36dp;
         }
 
-        Picasso.get()
-                .load(playOrPause)
-                .into(mPlay);
+        mPlay.setImageResource(playOrPause);
 
         // Update the shuffle & repeat state
         if(getContext() != null) {

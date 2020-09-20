@@ -189,15 +189,15 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
     // Updates the Mini Player's playback buttons & track info
     private void updateUI(){
         // Update the play button
+        int playOrPause;
+
         if(mService.isPlaying()){
-            Picasso.get()
-                    .load(R.drawable.ic_pause_white_24dp)
-                    .into(mPlay);
+            playOrPause = R.drawable.ic_pause_white_24dp;
         }else{
-            Picasso.get()
-                    .load(R.drawable.ic_play_white_24dp)
-                    .into(mPlay);
+            playOrPause = R.drawable.ic_play_white_24dp;
         }
+
+        mPlay.setImageResource(playOrPause);
 
         // Update the track info
         if(mService.getCurrentTrack() != null){
