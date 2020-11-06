@@ -205,7 +205,7 @@ public class HomeFragment extends Fragment {
                         mTracks.add(jsonObject);
                     }
 
-                    if(!nextPage.equals("")){
+                    if(!nextPage.equals("") && !nextPage.equals("null")){
                         loadTrackDataFromVolley(nextPage + clientAuth);
                     }else{
                         trackViewModel.setTracks(mTracks);
