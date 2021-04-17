@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".LoginActivity">
+
+    <ImageView
+        android:id="@+id/logo"
+        android:layout_width="0dp"
+        android:layout_height="150dp"
+        android:src="@drawable/cloud_player_original"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="@id/guideline2" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_begin="100dp" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/app_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textColor="@android:color/white"
+        app:layout_constraintTop_toBottomOf="@id/logo"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        style="@style/TextAppearance.MaterialComponents.Headline4" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/connect_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="25dp"
+        android:foreground="?selectableItemBackground"
+        android:text="Connect to account"
+        app:layout_constraintTop_toBottomOf="@id/app_name"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        style="@style/ButtonBorderlessColored" />
+
+    <EditText
+        android:id="@+id/auth_code_edit_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="25dp"
+        android:layout_marginLeft="50dp"
+        android:layout_marginRight="50dp"
+        android:padding="10dp"
+        android:background="#f6ecf8"
+        android:inputType="text"
+        android:imeOptions="actionDone"
+        android:hint="Authorization Code"
+        app:layout_constraintTop_toBottomOf="@id/connect_button" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/login_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:layout_marginLeft="48dp"
+        android:layout_marginRight="48dp"
+        app:backgroundTint="@color/colorPrimary"
+        android:text="log in"
+        app:layout_constraintTop_toBottomOf="@id/auth_code_edit_text"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>
