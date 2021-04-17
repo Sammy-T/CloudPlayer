@@ -42,9 +42,9 @@ import de.voidplus.soundcloud.User;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.data_sc.CloudQueue;
-import sammyt.cloudplayer.nav.TrackAdapter;
 import sammyt.cloudplayer.data_sc.TracksTask;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
+import sammyt.cloudplayer.nav.TrackAdapter;
 import sammyt.cloudplayer.nav.TrackViewModel;
 
 public class ArtistsFragment extends Fragment {
@@ -231,17 +231,17 @@ public class ArtistsFragment extends Fragment {
     private void loadTrackDataFromVolley(String url){
         RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
 
-        final String clientAuth = "&client_id=" + getString(R.string.client_id);
+        final String auth = "&oauth_token=" + getString(R.string.temp_access_token);
 
         if(url == null) {
             Log.d(LOG_TAG, "Loading track data from volley.");
 
             setVisibleView(VisibleView.loading);
 
-            url = "https://api.soundcloud.com/users/" + getString(R.string.user_id)
-                    + "/favorites.json?linked_partitioning=1" + clientAuth;
+            String endpoint = "/me/likes/tracks";
+            url = getString(R.string.api_root) + endpoint + "?linked_partitioning=true" + auth;
 
-            mTracks.clear();
+            mTracks.clear(); // Make sure we're not appending to possibly stale data
         }
 
         Response.Listener<JSONObject> responseListener = new Response.Listener<JSONObject>(){
@@ -251,8 +251,8 @@ public class ArtistsFragment extends Fragment {
 
                 try{
                     JSONArray collection = response.getJSONArray("collection");
-                    String nextPage = response.optString("next_href");
 
+                    String nextPage = response.optString("next_href");
                     Log.d(LOG_TAG, "SC next page: " + nextPage);
 
                     for(int i=0; i < collection.length(); i++){
@@ -262,14 +262,14 @@ public class ArtistsFragment extends Fragment {
                         mTracks.add(jsonObject);
                     }
 
-                    if(!nextPage.equals("")){
-                        loadTrackDataFromVolley(nextPage + clientAuth);
+                    if(!nextPage.equals("") && !nextPage.equals("null")){
+                        loadTrackDataFromVolley(nextPage + auth);
                     }else{
                         trackViewModel.setTracks(mTracks);
                     }
 
                 }catch(JSONException e){
-                    Log.e(LOG_TAG, "JSON EXC: \n", e);
+                    Log.e(LOG_TAG, "Error parsing response json", e);
                     setVisibleView(VisibleView.error);
                 }
             }

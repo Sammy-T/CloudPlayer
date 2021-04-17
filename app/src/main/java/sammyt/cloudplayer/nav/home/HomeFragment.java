@@ -27,6 +27,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Track;
@@ -41,7 +43,7 @@ import sammyt.cloudplayer.nav.SelectedTrackModel;
 
 public class HomeFragment extends Fragment {
 
-    private final String LOG_TAG = this.getClass().getSimpleName();
+    private static final String LOG_TAG = HomeFragment.class.getSimpleName();
 
     private TrackViewModel trackViewModel;
     private SelectedTrackModel selectedTrackModel;
@@ -134,6 +136,31 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        //// TODO: TEMP
+        String apiRoot = getString(R.string.api_root);
+        String clientId = getString(R.string.client_id);
+        String redirectUri = null;
+        String responseType = "code";
+        String scope = "non-expiring";
+
+        try {
+            redirectUri = URLEncoder.encode(getString(R.string.redirect_uri), "UTF-8");
+        } catch(UnsupportedEncodingException e) {
+            Log.e(LOG_TAG, "Error encoding redirect uri", e);
+        }
+
+        if(redirectUri != null) {
+            String endpoint = "/connect";
+            String url = apiRoot + endpoint
+                    + "?client_id=" + clientId
+                    + "&redirect_uri=" + redirectUri
+                    + "&response_type=" + responseType
+                    + "&scope=" + scope;
+
+            Log.d(LOG_TAG, "/connect url:\n" + url);
+        }
+        ////
+
         return root;
     }
 
@@ -174,15 +201,15 @@ public class HomeFragment extends Fragment {
     private void loadTrackDataFromVolley(String url){
         RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
 
-        final String clientAuth = "&client_id=" + getString(R.string.client_id);
+        final String auth = "&oauth_token=" + getString(R.string.temp_access_token);
 
         if(url == null) {
             Log.d(LOG_TAG, "Loading track data from volley.");
 
             setVisibleView(VisibleView.loading);
 
-            url = "https://api.soundcloud.com/users/" + getString(R.string.user_id)
-                    + "/favorites.json?linked_partitioning=1" + clientAuth;
+            String endpoint = "/me/likes/tracks";
+            url = getString(R.string.api_root) + endpoint + "?linked_partitioning=true" + auth;
 
             mTracks.clear(); // Make sure we're not appending to possibly stale data
         }
@@ -194,8 +221,8 @@ public class HomeFragment extends Fragment {
 
                 try{
                     JSONArray collection = response.getJSONArray("collection");
-                    String nextPage = response.optString("next_href");
 
+                    String nextPage = response.optString("next_href");
                     Log.d(LOG_TAG, "SC next page: " + nextPage);
 
                     for(int i=0; i < collection.length(); i++){
@@ -206,13 +233,13 @@ public class HomeFragment extends Fragment {
                     }
 
                     if(!nextPage.equals("") && !nextPage.equals("null")){
-                        loadTrackDataFromVolley(nextPage + clientAuth);
+                        loadTrackDataFromVolley(nextPage + auth);
                     }else{
                         trackViewModel.setTracks(mTracks);
                     }
 
                 }catch(JSONException e){
-                    Log.e(LOG_TAG, "JSON EXC: \n", e);
+                    Log.e(LOG_TAG, "Error parsing response json", e);
                     setVisibleView(VisibleView.error);
                 }
             }
