@@ -49,7 +49,7 @@ import sammyt.cloudplayer.nav.TrackViewModel;
 
 public class ArtistsFragment extends Fragment {
 
-    private final String LOG_TAG = this.getClass().getSimpleName();
+    private static final String LOG_TAG = ArtistsFragment.class.getSimpleName();
 
     private Handler mHandler = new Handler();
 

@@ -4,24 +4,24 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import java.util.ArrayList;
+import org.json.JSONObject;
 
-import de.voidplus.soundcloud.Playlist;
+import java.util.ArrayList;
 
 public class PlaylistsViewModel extends ViewModel {
 
-    private MutableLiveData<ArrayList<Playlist>> mPlaylists;
+    private MutableLiveData<ArrayList<JSONObject>> mPlaylists;
 
     public PlaylistsViewModel() {
         mPlaylists = new MutableLiveData<>();
         mPlaylists.setValue(null);
     }
 
-    public void setPlaylists(ArrayList<Playlist> playlists){
+    public void setPlaylists(ArrayList<JSONObject> playlists){
         mPlaylists.setValue(playlists);
     }
 
-    public LiveData<ArrayList<Playlist>> getPlaylists() {
+    public LiveData<ArrayList<JSONObject>> getPlaylists() {
         return mPlaylists;
     }
 }

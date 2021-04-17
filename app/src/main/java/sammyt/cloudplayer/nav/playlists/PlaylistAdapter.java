@@ -1,5 +1,6 @@
 package sammyt.cloudplayer.nav.playlists;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,16 +13,18 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 
-import de.voidplus.soundcloud.Playlist;
 import sammyt.cloudplayer.R;
 
 public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHolder> {
 
-    private final String LOG_TAG = this.getClass().getSimpleName();
+    private static final String LOG_TAG = PlaylistAdapter.class.getSimpleName();
 
-    private ArrayList<Playlist> mPlaylists = new ArrayList<>();
+    private ArrayList<JSONObject> mPlaylists = new ArrayList<>();
 
     private onPlaylistClickListener mListener;
 
@@ -40,14 +43,10 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHo
         }
     }
 
-    public PlaylistAdapter(ArrayList<Playlist> playlists){
-        if(playlists != null){
-            mPlaylists = playlists;
-        }
-    }
+    public PlaylistAdapter(){}
 
     public interface onPlaylistClickListener{
-        void onPlaylistClick(int position, Playlist playlist);
+        void onPlaylistClick(int position, JSONObject playlist);
     }
 
     public void setOnPlaylistClickListener(onPlaylistClickListener l){
@@ -62,29 +61,36 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHo
 
         int layout = R.layout.playlist_item;
 
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(layout, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(layout, parent, false);
 
-        ViewHolder viewHolder = new ViewHolder(view);
-
-        return  viewHolder;
+        return new ViewHolder(view);
     }
 
     // Replace contents of view (invoked by Layout Manager)
     @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, int position){
-        final Playlist playlist = mPlaylists.get(position);
-        String title = playlist.getTitle();
-        String count = playlist.getTracks().size() + " tracks";
-        String playlistImage = playlist.getArtworkUrl();
+        final JSONObject playlist = mPlaylists.get(position);
+
+        String title;
+        String count;
+        String playlistImage;
+
+        try {
+            title = playlist.getString("title");
+            count = playlist.getString("track_count") + " tracks";
+            playlistImage = playlist.getString("artwork_url");
+
+            if(playlistImage == null || playlistImage.equals("null")) {
+                // Try to fallback to the first track's image
+                playlistImage = playlist.getJSONArray("tracks").getJSONObject(0).getString("artwork_url");
+            }
+        } catch(JSONException e) {
+            Log.e(LOG_TAG, "Error parsing json", e);
+            return;
+        }
 
         holder.playlistTitle.setText(title);
         holder.playlistTrackCount.setText(count);
-
-        if(playlistImage == null){
-            // Try to fallback to the first track's image
-            playlistImage = playlist.getTracks().get(0).getArtworkUrl();
-        }
 
         if(playlistImage != null){
             holder.playlistImage.setVisibility(View.VISIBLE);
@@ -122,7 +128,7 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHo
         return mPlaylists.size();
     }
 
-    public void updateTracks(ArrayList<Playlist> playlists){
+    public void updateTracks(ArrayList<JSONObject> playlists){
         mPlaylists = playlists;
         notifyDataSetChanged();
     }

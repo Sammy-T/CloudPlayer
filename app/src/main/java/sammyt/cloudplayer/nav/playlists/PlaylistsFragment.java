@@ -16,26 +16,34 @@ import android.widget.ViewSwitcher;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Playlist;
-import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
-import sammyt.cloudplayer.nav.TrackAdapter;
+import sammyt.cloudplayer.data_sc.CloudQueue;
 import sammyt.cloudplayer.data_sc.PlaylistsTask;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
+import sammyt.cloudplayer.nav.TrackAdapter;
 
 public class PlaylistsFragment extends Fragment {
 
-    private final String LOG_TAG = this.getClass().getSimpleName();
+    private static final String LOG_TAG = PlaylistsFragment.class.getSimpleName();
 
     private PlaylistsViewModel playlistsViewModel;
     private SelectedTrackModel selectedTrackModel;
@@ -51,7 +59,7 @@ public class PlaylistsFragment extends Fragment {
     private PlaylistAdapter mAdapter;
     private TrackAdapter mTrackAdapter;
 
-//    private Playlist mSelectedPlaylist; //// TODO: FECK
+    private JSONObject mSelectedPlaylist; 
 
     private enum VisibleView{
         loading, loaded, error
@@ -59,8 +67,10 @@ public class PlaylistsFragment extends Fragment {
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        playlistsViewModel = ViewModelProviders.of(getActivity()).get(PlaylistsViewModel.class);
-        selectedTrackModel = ViewModelProviders.of(getActivity()).get(SelectedTrackModel.class);
+        ViewModelProvider activityModelProvider = new ViewModelProvider(getActivity());
+
+        playlistsViewModel = activityModelProvider.get(PlaylistsViewModel.class);
+        selectedTrackModel = activityModelProvider.get(SelectedTrackModel.class);
 
         View root = inflater.inflate(R.layout.fragment_playlists, container, false);
         mLoadingView = root.findViewById(R.id.loading);
@@ -87,7 +97,7 @@ public class PlaylistsFragment extends Fragment {
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
         mPlaylistRecycler.setLayoutManager(layoutManager);
 
-        mAdapter = new PlaylistAdapter(null);
+        mAdapter = new PlaylistAdapter();
         mAdapter.setOnPlaylistClickListener(mPlaylistClickListener);
         mPlaylistRecycler.setAdapter(mAdapter);
 
@@ -100,13 +110,13 @@ public class PlaylistsFragment extends Fragment {
         mPlaylistTrackRecycler.setAdapter(mTrackAdapter);
 
         // Observe the View Model to update the adapter
-        playlistsViewModel.getPlaylists().observe(getViewLifecycleOwner(), new Observer<ArrayList<Playlist>>() {
+        playlistsViewModel.getPlaylists().observe(getViewLifecycleOwner(), new Observer<ArrayList<JSONObject>>() {
             @Override
-            public void onChanged(ArrayList<Playlist> playlists) {
+            public void onChanged(ArrayList<JSONObject> playlists) {
                 String logMessage = "ViewModel onChanged - ";
 
                 if(playlists == null){
-                    loadPlaylistData();
+                    loadPlaylistDataFromVolley();
                 }else{
                     setVisibleView(VisibleView.loaded);
                 }
@@ -135,7 +145,7 @@ public class PlaylistsFragment extends Fragment {
         titleView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadPlaylistData();
+                loadPlaylistDataFromVolley();
             }
         });
 
@@ -144,7 +154,7 @@ public class PlaylistsFragment extends Fragment {
         retryLoading.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadPlaylistData();
+                loadPlaylistDataFromVolley();
             }
         });
 
@@ -172,7 +182,7 @@ public class PlaylistsFragment extends Fragment {
 
     private PlaylistAdapter.onPlaylistClickListener mPlaylistClickListener = new PlaylistAdapter.onPlaylistClickListener() {
         @Override
-        public void onPlaylistClick(int position, Playlist playlist) {
+        public void onPlaylistClick(int position, JSONObject playlist) {
             selectPlaylist(playlist);
         }
     };
@@ -180,7 +190,20 @@ public class PlaylistsFragment extends Fragment {
     private TrackAdapter.onTrackClickListener mTrackClickListener = new TrackAdapter.onTrackClickListener() {
         @Override
         public void onTrackClick(int position, JSONObject track) {
-//            selectedTrackModel.setSelectedTrack(position, track, mSelectedPlaylist.getTracks(), LOG_TAG); //// TODO: FECK
+            ArrayList<JSONObject> tracks = new ArrayList<>();
+
+            try {
+                JSONArray tracksJsonArray = mSelectedPlaylist.getJSONArray("tracks");
+
+                for(int i=0; i < tracksJsonArray.length(); i++) {
+                    tracks.add(tracksJsonArray.getJSONObject(i));
+                }
+            } catch(JSONException e) {
+                Log.e(LOG_TAG, "Error parsing json", e);
+                return;
+            }
+
+            selectedTrackModel.setSelectedTrack(position, track, tracks, LOG_TAG);
         }
     };
 
@@ -196,7 +219,7 @@ public class PlaylistsFragment extends Fragment {
         playlistsTask.setOnFinishListener(new PlaylistsTask.onFinishListener() {
             @Override
             public void onFinish(User user, ArrayList<Playlist> playlists) {
-                playlistsViewModel.setPlaylists(playlists);
+//                playlistsViewModel.setPlaylists(playlists);
             }
 
             @Override
@@ -206,16 +229,82 @@ public class PlaylistsFragment extends Fragment {
         });
     }
 
-    private void selectPlaylist(Playlist playlist){
-//        mSelectedPlaylist = playlist; //// TODO: FECK
+    private void loadPlaylistDataFromVolley() {
+        RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
 
-        String title = playlist.getTitle();
-        String count = playlist.getTracks().size() + " tracks";
+        final String auth = "oauth_token=" + getString(R.string.temp_access_token);
 
-        mPlaylistSelectedTitle.setText(title);
-        mPlaylistSelectedCount.setText(count);
+        Log.d(LOG_TAG, "Loading playlist data from volley.");
 
-//        mTrackAdapter.updateTracks(playlist.getTracks()); //// TODO: FECK
+        setVisibleView(VisibleView.loading);
+
+        String endpoint = "/me/playlists";
+        String url = getString(R.string.api_root) + endpoint + "?" + auth;
+
+        Response.Listener<JSONArray> responseListener = new Response.Listener<JSONArray>() {
+            @Override
+            public void onResponse(JSONArray response) {
+                Log.d(LOG_TAG, "Volley response:\n" + response);
+
+                try {
+                    ArrayList<JSONObject> playlists = new ArrayList<>();
+
+                    for(int i=0; i < response.length(); i++) {
+                        JSONObject playlistObject = response.getJSONObject(i);
+                        Log.d(LOG_TAG, "playlist object:\n" + playlistObject);
+
+                        playlists.add(playlistObject);
+                    }
+
+                    playlistsViewModel.setPlaylists(playlists);
+
+                } catch(JSONException e) {
+                    Log.e(LOG_TAG, "Error parsing response json", e);
+                    setVisibleView(VisibleView.error);
+                }
+            }
+        };
+
+        Response.ErrorListener errorListener = new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e(LOG_TAG, "Error loading playlists", error);
+                setVisibleView(VisibleView.error);
+            }
+        };
+
+        JsonArrayRequest jsonRequest = new JsonArrayRequest(
+                Request.Method.GET,
+                url,
+                null,
+                responseListener,
+                errorListener);
+
+        queue.add(jsonRequest);
+    }
+
+    private void selectPlaylist(JSONObject playlist){
+        mSelectedPlaylist = playlist; 
+
+        try {
+            String title = playlist.getString("title");
+            String count = playlist.getString("track_count") + " tracks";
+
+            mPlaylistSelectedTitle.setText(title);
+            mPlaylistSelectedCount.setText(count);
+
+            JSONArray tracksJsonArray = playlist.getJSONArray("tracks");
+            ArrayList<JSONObject> tracks = new ArrayList<>();
+
+            for(int i=0; i < tracksJsonArray.length(); i++) {
+                tracks.add(tracksJsonArray.getJSONObject(i));
+            }
+
+            mTrackAdapter.updateTracks(tracks); 
+        } catch(JSONException e) {
+            Log.e(LOG_TAG, "Error parsing json", e);
+            return;
+        }
 
         mSwitcher.setDisplayedChild(1);
     }
