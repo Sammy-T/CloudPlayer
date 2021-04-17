@@ -18,29 +18,15 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
-import android.view.Surface;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.android.exoplayer2.ExoPlaybackException;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.analytics.AnalyticsListener;
-import com.google.android.exoplayer2.decoder.DecoderCounters;
-import com.google.android.exoplayer2.metadata.Metadata;
-import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.MediaSourceEventListener;
-import com.google.android.exoplayer2.source.ProgressiveMediaSource;
-import com.google.android.exoplayer2.source.TrackGroupArray;
-import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
-import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
-import com.google.android.exoplayer2.util.Util;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
@@ -56,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 
 public class PlayerService extends Service {
 
-    private final String LOG_TAG = this.getClass().getSimpleName();
+    private static final String LOG_TAG = PlayerService.class.getSimpleName();
 
     private static final String PLAYER_ACTION_EXTRA = "EXTRA_PLAYER_ACTION";
     private static final int PLAYER_ACTION_PLAY_PAUSE = 0;
@@ -78,7 +64,6 @@ public class PlayerService extends Service {
 
     private Uri mUri;
     private SimpleExoPlayer mPlayer;
-    private DataSource.Factory mDataSourceFactory;
     private Handler mHandler = new Handler();
     private ScheduledExecutorService mExecutor;
     private ScheduledFuture<?> mFuture;
@@ -201,9 +186,6 @@ public class PlayerService extends Service {
             };
 
             mPlayer = new SimpleExoPlayer.Builder(mContext).build();
-            mDataSourceFactory = new DefaultDataSourceFactory(mContext,
-                    Util.getUserAgent(mContext, "Cloud Player"));
-
             mPlayer.addAnalyticsListener(analyticsListener);
 
             initFocus();
@@ -390,13 +372,12 @@ public class PlayerService extends Service {
 //                        String trackInfo = mTracks.get(mCurrentTrack).getUser().getUsername() + " - "
 //                                + mTracks.get(mCurrentTrack).getTitle();
 
-                        mPlayer.setPlayWhenReady(false); // Stop playing the previous track
+                        mPlayer.stop(); // Stop playing the previous track
 
-                        MediaSource mediaSource = new ProgressiveMediaSource.Factory(mDataSourceFactory)
-                                .createMediaSource(mUri);
-
-                        mPlayer.prepare(mediaSource);
-                        mPlayer.setPlayWhenReady(true);
+                        // Prepare the player with the track and start playing
+                        mPlayer.setMediaItem(MediaItem.fromUri(mUri));
+                        mPlayer.prepare();
+                        mPlayer.play();
 
                         mIsPlaying = true;
 
@@ -503,16 +484,19 @@ public class PlayerService extends Service {
         }else{
             mIsPlaying = play;
         }
-        mPlayer.setPlayWhenReady(mIsPlaying);
 
         if(mTracks != null) {
             buildMediaNotification(mIsPlaying); // Update the media notification
         }
 
-        // Start or stop the playback monitoring depending on whether the track is playing
+        // Start or stop the playback and monitoring depending on whether the track is set to play
         if(mIsPlaying){
+            mPlayer.play();
+
             mFuture = mExecutor.scheduleAtFixedRate(mProgressHelperRunnable, 0, 1, TimeUnit.SECONDS);
         }else{
+            mPlayer.pause();
+
             if(mFuture != null){
                 Log.d(LOG_TAG, "Cancelling playback progress future.");
                 mFuture.cancel(true);
