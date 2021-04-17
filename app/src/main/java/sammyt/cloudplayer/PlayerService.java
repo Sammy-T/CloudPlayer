@@ -26,7 +26,6 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.android.exoplayer2.ExoPlaybackException;
-import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
@@ -42,7 +41,6 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
-
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
@@ -174,11 +172,39 @@ public class PlayerService extends Service {
     @SuppressLint("RestrictedApi")
     public void initPlayer(){
         if(mPlayer == null) {
+            AnalyticsListener analyticsListener = new AnalyticsListener() {
+                @Override
+                public void onPlaybackStateChanged(EventTime eventTime, int state) {
+                    // Loads the next track when current track has ended
+                    if(state == Player.STATE_ENDED){
+                        if(mRepeat){
+                            loadTrack(mCurrentTrack); // Repeat the current track
+                        }else if(mShuffle && mCurrentTrack == mTracks.size() - 1){
+                            // Restart from the first position and shuffle the list again
+                            mCurrentTrack = 0;
+                            toggleShuffle(true);
+                        }else{
+                            adjustTrack(AdjustTrack.next); // Play the next track
+                        }
+                    }
+                }
+
+                @Override
+                public void onAudioSessionIdChanged(EventTime eventTime, int audioSessionId) {
+                    Log.d(LOG_TAG, "Audio session id: " + audioSessionId);
+                    mSessionId = audioSessionId;
+
+                    if(mListener != null) {
+                        mListener.onSessionId(audioSessionId);
+                    }
+                }
+            };
+
             mPlayer = new SimpleExoPlayer.Builder(mContext).build();
             mDataSourceFactory = new DefaultDataSourceFactory(mContext,
                     Util.getUserAgent(mContext, "Cloud Player"));
 
-            mPlayer.addAnalyticsListener(new PlayerAnalyticsListener());
+            mPlayer.addAnalyticsListener(analyticsListener);
 
             initFocus();
         }
@@ -629,123 +655,5 @@ public class PlayerService extends Service {
         }
 
         return PendingIntent.getService(mContext, requestCode, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-    }
-
-    @SuppressLint("RestrictedApi")
-    class PlayerAnalyticsListener implements AnalyticsListener {
-        
-        public void onPlayerStateChanged(EventTime eventTime, boolean playWhenReady, int playbackState) {
-            // Loads the next track when current track has ended
-            if(playWhenReady && playbackState == Player.STATE_ENDED){
-                if(mRepeat){
-                    loadTrack(mCurrentTrack); // Repeat the current track
-
-                }else if(mShuffle && mCurrentTrack == mTracks.size() - 1){
-                    // Restart from the first position and shuffle the list again
-                    mCurrentTrack = 0;
-                    toggleShuffle(true);
-
-                }else{
-                    adjustTrack(AdjustTrack.next); // Play the next track
-                }
-            }
-        }
-
-        public void onTimelineChanged(EventTime eventTime, int reason) { }
-
-        public void onPositionDiscontinuity(EventTime eventTime, int reason) { }
-
-        public void onSeekStarted(EventTime eventTime) { }
-
-        public void onSeekProcessed(EventTime eventTime) { }
-
-        public void onPlaybackParametersChanged(EventTime eventTime, PlaybackParameters playbackParameters) { }
-
-        public void onRepeatModeChanged(EventTime eventTime, int repeatMode) { }
-
-        public void onShuffleModeChanged(EventTime eventTime, boolean shuffleModeEnabled) { }
-
-        public void onLoadingChanged(EventTime eventTime, boolean isLoading) { }
-
-        public void onPlayerError(EventTime eventTime, ExoPlaybackException error) { }
-
-        public void onTracksChanged(EventTime eventTime, TrackGroupArray trackGroups,
-                                    TrackSelectionArray trackSelections) { }
-
-        public void onLoadStarted(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
-                                  MediaSourceEventListener.MediaLoadData mediaLoadData) { }
-
-        public void onLoadCompleted(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
-                                    MediaSourceEventListener.MediaLoadData mediaLoadData) { }
-
-        public void onLoadCanceled(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
-                                   MediaSourceEventListener.MediaLoadData mediaLoadData) { }
-
-        public void onLoadError(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo,
-                                MediaSourceEventListener.MediaLoadData mediaLoadData, IOException error,
-                                boolean wasCanceled) { }
-
-        public void onDownstreamFormatChanged(EventTime eventTime,
-                                              MediaSourceEventListener.MediaLoadData mediaLoadData) { }
-
-        public void onUpstreamDiscarded(EventTime eventTime, MediaSourceEventListener.MediaLoadData mediaLoadData) { }
-
-        public void onMediaPeriodCreated(EventTime eventTime) { }
-
-        public void onMediaPeriodReleased(EventTime eventTime) { }
-
-        public void onReadingStarted(EventTime eventTime) { }
-
-        public void onBandwidthEstimate(EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded,
-                                        long bitrateEstimate) { }
-
-        public void onSurfaceSizeChanged(EventTime eventTime, int width, int height) { }
-
-        public void onMetadata(EventTime eventTime, Metadata metadata) { }
-
-        public void onDecoderEnabled(EventTime eventTime, int trackType, DecoderCounters decoderCounters) { }
-
-        public void onDecoderInitialized(EventTime eventTime, int trackType, String decoderName,
-                                         long initializationDurationMs) { }
-
-        public void onDecoderInputFormatChanged(EventTime eventTime, int trackType, Format format) { }
-
-        public void onDecoderDisabled(EventTime eventTime, int trackType, DecoderCounters decoderCounters) { }
-
-        public void onAudioSessionId(EventTime eventTime, int audioSessionId) {
-            Log.d(LOG_TAG, "Audio session id: " + audioSessionId);
-            mSessionId = audioSessionId;
-
-            if(mListener != null){
-                mListener.onSessionId(audioSessionId);
-            }
-        }
-
-        public void onAudioAttributesChanged(EventTime eventTime,
-                                             com.google.android.exoplayer2.audio.AudioAttributes audioAttributes) { }
-
-        public void onVolumeChanged(EventTime eventTime, float volume) { }
-
-        public void onAudioUnderrun(EventTime eventTime, int bufferSize, long bufferSizeMs,
-                                    long elapsedSinceLastFeedMs) { }
-
-        public void onDroppedVideoFrames(EventTime eventTime, int droppedFrames, long elapsedMs) { }
-
-        public void onVideoSizeChanged(EventTime eventTime, int width, int height,
-                                       int unappliedRotationDegrees, float pixelWidthHeightRatio) { }
-
-        public void onRenderedFirstFrame(EventTime eventTime, @Nullable Surface surface) { }
-
-        public void onDrmSessionAcquired(EventTime eventTime) { }
-
-        public void onDrmKeysLoaded(EventTime eventTime) { }
-
-        public void onDrmSessionManagerError(EventTime eventTime, Exception error) { }
-
-        public void onDrmKeysRestored(EventTime eventTime) { }
-
-        public void onDrmKeysRemoved(EventTime eventTime) { }
-
-        public void onDrmSessionReleased(EventTime eventTime) { }
     }
 }
