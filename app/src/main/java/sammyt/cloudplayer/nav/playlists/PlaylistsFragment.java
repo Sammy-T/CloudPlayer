@@ -45,6 +45,8 @@ public class PlaylistsFragment extends Fragment {
 
     private static final String LOG_TAG = PlaylistsFragment.class.getSimpleName();
 
+    private String token;
+
     private PlaylistsViewModel playlistsViewModel;
     private SelectedTrackModel selectedTrackModel;
 
@@ -66,13 +68,8 @@ public class PlaylistsFragment extends Fragment {
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-
-        ViewModelProvider activityModelProvider = new ViewModelProvider(getActivity());
-
-        playlistsViewModel = activityModelProvider.get(PlaylistsViewModel.class);
-        selectedTrackModel = activityModelProvider.get(SelectedTrackModel.class);
-
         View root = inflater.inflate(R.layout.fragment_playlists, container, false);
+
         mLoadingView = root.findViewById(R.id.loading);
         mErrorView = root.findViewById(R.id.error);
         Button retryLoading = root.findViewById(R.id.retry_playlists);
@@ -109,6 +106,14 @@ public class PlaylistsFragment extends Fragment {
         mTrackAdapter.setOnTrackClickListener(mTrackClickListener);
         mPlaylistTrackRecycler.setAdapter(mTrackAdapter);
 
+        // Retrieve the token from the activity
+        token = ((NavActivity) requireActivity()).token;
+
+        // Set up ViewModels
+        ViewModelProvider activityModelProvider = new ViewModelProvider(requireActivity());
+        playlistsViewModel = activityModelProvider.get(PlaylistsViewModel.class);
+        selectedTrackModel = activityModelProvider.get(SelectedTrackModel.class);
+
         // Observe the View Model to update the adapter
         playlistsViewModel.getPlaylists().observe(getViewLifecycleOwner(), new Observer<ArrayList<JSONObject>>() {
             @Override
@@ -131,7 +136,7 @@ public class PlaylistsFragment extends Fragment {
         });
 
         // Observe the shared View Model to update the adapter's selected item
-        selectedTrackModel.getSelectedTrack().observe(getActivity(), new Observer<SelectedTrackModel.SelectedTrack>() {
+        selectedTrackModel.getSelectedTrack().observe(requireActivity(), new Observer<SelectedTrackModel.SelectedTrack>() {
             @Override
             public void onChanged(SelectedTrackModel.SelectedTrack selectedTrack) {
                 if(selectedTrack != null && mTrackAdapter != null) {
@@ -171,11 +176,7 @@ public class PlaylistsFragment extends Fragment {
             }
         };
 
-        try{
-            ((NavActivity) getActivity()).setOnBackListener(onBackListener);
-        }catch(ClassCastException e){
-            Log.e(LOG_TAG, "Cannot be cast to NavActivity", e);
-        }
+        ((NavActivity) requireActivity()).setOnBackListener(onBackListener);
 
         return root;
     }
@@ -232,7 +233,7 @@ public class PlaylistsFragment extends Fragment {
     private void loadPlaylistDataFromVolley() {
         RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
 
-        final String auth = "oauth_token=" + getString(R.string.temp_access_token);
+        final String auth = "oauth_token=" + token;
 
         Log.d(LOG_TAG, "Loading playlist data from volley.");
 

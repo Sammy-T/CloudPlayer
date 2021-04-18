@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -19,6 +20,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.squareup.picasso.Picasso;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -34,6 +36,8 @@ import sammyt.cloudplayer.player.PlayerActivity;
 public class NavActivity extends AppCompatActivity implements PlayerService.PlayerServiceListener {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
+
+    public String token;
 
     private SelectedTrackModel selectedTrackModel;
 
@@ -83,6 +87,16 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
         // Set up the bottom navigation view with the Nav Controller
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         NavigationUI.setupWithNavController(navView, navController);
+
+        // Retrieve the token
+        SharedPreferences sharedPrefs = this.getSharedPreferences(getString(R.string.pref_file_key), Context.MODE_PRIVATE);
+        token = sharedPrefs.getString(getString(R.string.token_key), "");
+
+        // Redirect back to login if no token was found
+        if(token.equals("")) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+        }
 
         mProgressAnim = new ObjectAnimator();
         mProgressAnim.setTarget(mProgress);

@@ -27,23 +27,23 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 
 import de.voidplus.soundcloud.Track;
 import de.voidplus.soundcloud.User;
-
+import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.data_sc.CloudQueue;
-import sammyt.cloudplayer.nav.TrackAdapter;
 import sammyt.cloudplayer.data_sc.TracksTask;
-import sammyt.cloudplayer.nav.TrackViewModel;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
+import sammyt.cloudplayer.nav.TrackAdapter;
+import sammyt.cloudplayer.nav.TrackViewModel;
 
 public class HomeFragment extends Fragment {
 
     private static final String LOG_TAG = HomeFragment.class.getSimpleName();
+
+    private String token;
 
     private TrackViewModel trackViewModel;
     private SelectedTrackModel selectedTrackModel;
@@ -60,13 +60,8 @@ public class HomeFragment extends Fragment {
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-
-        ViewModelProvider activityModelProvider = new ViewModelProvider(getActivity());
-
-        trackViewModel = activityModelProvider.get(TrackViewModel.class);
-        selectedTrackModel = activityModelProvider.get(SelectedTrackModel.class);
-
         View root = inflater.inflate(R.layout.fragment_home, container, false);
+
         TextView titleView = root.findViewById(R.id.title_liked_text);
         mTrackRecycler = root.findViewById(R.id.liked_tracks_recycler);
         mLoadingView = root.findViewById(R.id.loading);
@@ -79,6 +74,14 @@ public class HomeFragment extends Fragment {
         mAdapter = new TrackAdapter(getContext(), null);
         mAdapter.setOnTrackClickListener(mTrackClickListener);
         mTrackRecycler.setAdapter(mAdapter);
+
+        // Retrieve the token from the activity
+        token = ((NavActivity) requireActivity()).token;
+
+        // Set up the ViewModels
+        ViewModelProvider activityModelProvider = new ViewModelProvider(requireActivity());
+        trackViewModel = activityModelProvider.get(TrackViewModel.class);
+        selectedTrackModel = activityModelProvider.get(SelectedTrackModel.class);
 
         // Observe the View Model to update the adapter
         trackViewModel.getTracks().observe(getViewLifecycleOwner(), new Observer<ArrayList<JSONObject>>() {
@@ -110,7 +113,7 @@ public class HomeFragment extends Fragment {
         });
 
         // Observe the shared View Model to update the adapter's selected item
-        selectedTrackModel.getSelectedTrack().observe(getActivity(), new Observer<SelectedTrackModel.SelectedTrack>() {
+        selectedTrackModel.getSelectedTrack().observe(requireActivity(), new Observer<SelectedTrackModel.SelectedTrack>() {
             @Override
             public void onChanged(SelectedTrackModel.SelectedTrack selectedTrack) {
                 if(selectedTrack != null && mAdapter != null) {
@@ -135,31 +138,6 @@ public class HomeFragment extends Fragment {
                 loadTrackDataFromVolley(null);
             }
         });
-
-        //// TODO: TEMP
-        String apiRoot = getString(R.string.api_root);
-        String clientId = getString(R.string.client_id);
-        String redirectUri = null;
-        String responseType = "code";
-        String scope = "non-expiring";
-
-        try {
-            redirectUri = URLEncoder.encode(getString(R.string.redirect_uri), "UTF-8");
-        } catch(UnsupportedEncodingException e) {
-            Log.e(LOG_TAG, "Error encoding redirect uri", e);
-        }
-
-        if(redirectUri != null) {
-            String endpoint = "/connect";
-            String url = apiRoot + endpoint
-                    + "?client_id=" + clientId
-                    + "&redirect_uri=" + redirectUri
-                    + "&response_type=" + responseType
-                    + "&scope=" + scope;
-
-            Log.d(LOG_TAG, "/connect url:\n" + url);
-        }
-        ////
 
         return root;
     }
@@ -201,7 +179,7 @@ public class HomeFragment extends Fragment {
     private void loadTrackDataFromVolley(String url){
         RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
 
-        final String auth = "&oauth_token=" + getString(R.string.temp_access_token);
+        final String auth = "&oauth_token=" + token;
 
         if(url == null) {
             Log.d(LOG_TAG, "Loading track data from volley.");

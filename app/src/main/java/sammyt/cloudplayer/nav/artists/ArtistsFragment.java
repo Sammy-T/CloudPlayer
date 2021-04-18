@@ -51,6 +51,8 @@ public class ArtistsFragment extends Fragment {
 
     private static final String LOG_TAG = ArtistsFragment.class.getSimpleName();
 
+    private String token;
+
     private Handler mHandler = new Handler();
 
     private TrackViewModel trackViewModel;
@@ -74,13 +76,8 @@ public class ArtistsFragment extends Fragment {
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-
-        ViewModelProvider activityModelProvider = new ViewModelProvider(getActivity());
-
-        trackViewModel = activityModelProvider.get(TrackViewModel.class);
-        selectedTrackModel = activityModelProvider.get(SelectedTrackModel.class);
-
         View root = inflater.inflate(R.layout.fragment_artists, container, false);
+
         mLoadingView = root.findViewById(R.id.loading);
         mErrorView = root.findViewById(R.id.error);
         Button retryLoading = root.findViewById(R.id.retry_artists);
@@ -102,8 +99,7 @@ public class ArtistsFragment extends Fragment {
         mSwitcher.setOutAnimation(outAnim);
 
         // Set up artist recycler view
-        StickyHeadersLinearLayoutManager<ArtistsAdapter> layoutManager =
-                new StickyHeadersLinearLayoutManager<>(getContext());
+        StickyHeadersLinearLayoutManager<ArtistsAdapter> layoutManager = new StickyHeadersLinearLayoutManager<>(getContext());
         artistRecycler.setLayoutManager(layoutManager);
 
         mAdapter = new ArtistsAdapter(null);
@@ -117,6 +113,14 @@ public class ArtistsFragment extends Fragment {
         mTrackAdapter = new TrackAdapter(getContext(), null);
         mTrackAdapter.setOnTrackClickListener(mTrackClickListener);
         artistTrackRecycler.setAdapter(mTrackAdapter);
+
+        // Retrieve the token from the activity
+        token = ((NavActivity) requireActivity()).token;
+
+        // Set up the ViewModels
+        ViewModelProvider activityModelProvider = new ViewModelProvider(requireActivity());
+        trackViewModel = activityModelProvider.get(TrackViewModel.class);
+        selectedTrackModel = activityModelProvider.get(SelectedTrackModel.class);
 
         trackViewModel.getTracks().observe(getViewLifecycleOwner(), new Observer<ArrayList<JSONObject>>() {
             @Override
@@ -140,7 +144,7 @@ public class ArtistsFragment extends Fragment {
         });
 
         // Observe the shared View Model to update the adapter's selected item
-        selectedTrackModel.getSelectedTrack().observe(getActivity(), new Observer<SelectedTrackModel.SelectedTrack>() {
+        selectedTrackModel.getSelectedTrack().observe(requireActivity(), new Observer<SelectedTrackModel.SelectedTrack>() {
             @Override
             public void onChanged(SelectedTrackModel.SelectedTrack selectedTrack) {
                 if(selectedTrack != null && mTrackAdapter != null) {
@@ -180,11 +184,7 @@ public class ArtistsFragment extends Fragment {
             }
         };
 
-        try{
-            ((NavActivity) getActivity()).setOnBackListener(onBackListener);
-        }catch(ClassCastException e){
-            Log.e(LOG_TAG, "Cannot be cast to NavActivity", e);
-        }
+        ((NavActivity) requireActivity()).setOnBackListener(onBackListener);
 
         return root;
     }
@@ -231,7 +231,7 @@ public class ArtistsFragment extends Fragment {
     private void loadTrackDataFromVolley(String url){
         RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
 
-        final String auth = "&oauth_token=" + getString(R.string.temp_access_token);
+        final String auth = "&oauth_token=" + token;
 
         if(url == null) {
             Log.d(LOG_TAG, "Loading track data from volley.");
