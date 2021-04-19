@@ -9,7 +9,7 @@ import sammyt.cloudplayer.R;
 
 public class PlayerActivity extends AppCompatActivity {
 
-    private final String LOG_TAG = this.getClass().getSimpleName();
+    private static final String LOG_TAG = PlayerActivity.class.getSimpleName();
 
     private static final String PLAYER_FRAGMENT = "PLAYER_FRAGMENT";
 

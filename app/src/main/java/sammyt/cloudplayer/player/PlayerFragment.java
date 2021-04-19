@@ -54,7 +54,7 @@ import sammyt.cloudplayer.R;
  */
 public class PlayerFragment extends Fragment implements PlayerService.PlayerServiceListener {
 
-    private final String LOG_TAG = this.getClass().getSimpleName();
+    private static final String LOG_TAG = PlayerFragment.class.getSimpleName();
 
     private static final int PERMISSION_REQ_REC_AUDIO = 819;
     
@@ -417,9 +417,6 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         mTimeView.setText(timeText);
     }
 
-    // Player Service Interface method
-    public void onSessionId(int sessionId){}
-
     // Player Service Connection
     private ServiceConnection mConnection = new ServiceConnection() {
         @Override
@@ -463,7 +460,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
 
     // Helper function to check permissions
     private boolean checkPermission(String permission){
-        if(ContextCompat.checkSelfPermission(getContext(), permission) == PackageManager.PERMISSION_GRANTED){
+        if(ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED){
             return true; // Permission granted
         }
         Log.w(LOG_TAG, "Permission not granted: " + permission);

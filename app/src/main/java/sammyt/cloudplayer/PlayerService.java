@@ -67,7 +67,6 @@ public class PlayerService extends Service {
     private Handler mHandler = new Handler();
     private ScheduledExecutorService mExecutor;
     private ScheduledFuture<?> mFuture;
-    private int mSessionId;
 
     private AudioManager mAudioManager;
     private AudioManager.OnAudioFocusChangeListener mFocusListener;
@@ -147,7 +146,6 @@ public class PlayerService extends Service {
     public interface PlayerServiceListener{
         void onTrackLoaded(int trackPos, JSONObject track);
         void onPlayback(float duration, float currentPos, float bufferPos);
-        void onSessionId(int sessionId);
     }
 
     public void setPlayerServiceListener(PlayerServiceListener l){
@@ -171,16 +169,6 @@ public class PlayerService extends Service {
                         }else{
                             adjustTrack(AdjustTrack.next); // Play the next track
                         }
-                    }
-                }
-
-                @Override
-                public void onAudioSessionIdChanged(EventTime eventTime, int audioSessionId) {
-                    Log.d(LOG_TAG, "Audio session id: " + audioSessionId);
-                    mSessionId = audioSessionId;
-
-                    if(mListener != null) {
-                        mListener.onSessionId(audioSessionId);
                     }
                 }
             };
@@ -342,7 +330,7 @@ public class PlayerService extends Service {
     }
 
     public int getSessionId(){
-        return mSessionId;
+        return mPlayer.getAudioSessionId();
     }
 
     public void loadTrack(int trackPos){
