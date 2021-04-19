@@ -32,7 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import sammyt.cloudplayer.data_sc.CloudQueue;
+import sammyt.cloudplayer.data.CloudQueue;
 
 public class LoginActivity extends AppCompatActivity {
 

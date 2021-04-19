@@ -1,4 +1,4 @@
-package sammyt.cloudplayer.data_sc;
+package sammyt.cloudplayer.data;
 
 import android.content.Context;
 

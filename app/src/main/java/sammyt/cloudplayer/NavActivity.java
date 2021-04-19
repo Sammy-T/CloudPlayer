@@ -159,7 +159,6 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
         // Unbind the service if nothing is playing
         if (mBound && !mService.isPlaying()) {
             Log.d(LOG_TAG, "unbind service");
-
             unbindService(mConnection);
             mBound = false;
         }
@@ -175,7 +174,6 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
         // unbind the service
         if(mBound) {
             Log.d(LOG_TAG, "unbind service");
-
             unbindService(mConnection);
         }
 
@@ -185,7 +183,6 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
     private void init(){
         if(!mBound){
             Log.d(LOG_TAG, "Bind Service");
-
             Intent intent = new Intent(this, PlayerService.class);
             bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         }else{

@@ -21,8 +21,6 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.TreeSet;
 
-import de.voidplus.soundcloud.Track;
-import de.voidplus.soundcloud.User;
 import sammyt.cloudplayer.R;
 
 public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements StickyHeaders {

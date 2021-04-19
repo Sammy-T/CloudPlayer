@@ -32,12 +32,9 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
-import de.voidplus.soundcloud.Playlist;
-import de.voidplus.soundcloud.User;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
-import sammyt.cloudplayer.data_sc.CloudQueue;
-import sammyt.cloudplayer.data_sc.PlaylistsTask;
+import sammyt.cloudplayer.data.CloudQueue;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.nav.TrackAdapter;
 
@@ -191,6 +188,7 @@ public class PlaylistsFragment extends Fragment {
     private TrackAdapter.onTrackClickListener mTrackClickListener = new TrackAdapter.onTrackClickListener() {
         @Override
         public void onTrackClick(int position, JSONObject track) {
+            // Build an ArrayList that's compatible with the ViewModel method
             ArrayList<JSONObject> tracks = new ArrayList<>();
 
             try {
@@ -208,36 +206,13 @@ public class PlaylistsFragment extends Fragment {
         }
     };
 
-    private void loadPlaylistData(){
-        setVisibleView(VisibleView.loading);
-
-        PlaylistsTask playlistsTask = new PlaylistsTask(
-                getString(R.string.client_id),
-                getString(R.string.client_secret),
-                getString(R.string.login_name),
-                getString(R.string.login_password));
-        playlistsTask.execute();
-        playlistsTask.setOnFinishListener(new PlaylistsTask.onFinishListener() {
-            @Override
-            public void onFinish(User user, ArrayList<Playlist> playlists) {
-//                playlistsViewModel.setPlaylists(playlists);
-            }
-
-            @Override
-            public void onFailure() {
-                setVisibleView(VisibleView.error);
-            }
-        });
-    }
-
     private void loadPlaylistDataFromVolley() {
         RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
 
-        final String auth = "oauth_token=" + token;
-
         Log.d(LOG_TAG, "Loading playlist data from volley.");
-
         setVisibleView(VisibleView.loading);
+
+        final String auth = "oauth_token=" + token;
 
         String endpoint = "/me/playlists";
         String url = getString(R.string.api_root) + endpoint + "?" + auth;
@@ -257,7 +232,7 @@ public class PlaylistsFragment extends Fragment {
                         playlists.add(playlistObject);
                     }
 
-                    playlistsViewModel.setPlaylists(playlists);
+                    playlistsViewModel.setPlaylists(playlists); // Update the ViewModel
 
                 } catch(JSONException e) {
                     Log.e(LOG_TAG, "Error parsing response json", e);

@@ -8,8 +8,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
-import de.voidplus.soundcloud.Track;
-
 public class TrackViewModel extends ViewModel {
 
     private final String LOG_TAG = this.getClass().getSimpleName();

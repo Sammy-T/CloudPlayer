@@ -8,8 +8,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
-import de.voidplus.soundcloud.Track;
-
 public class SelectedTrackModel extends ViewModel {
 
     private MutableLiveData<SelectedTrack> mSelectedTrack;

@@ -4,8 +4,6 @@ import org.json.JSONObject;
 
 import java.util.Comparator;
 
-import de.voidplus.soundcloud.User;
-
 public class ArtistObjectComparator implements Comparator<Object[]> {
 
     private final String LOG_TAG = this.getClass().getSimpleName();

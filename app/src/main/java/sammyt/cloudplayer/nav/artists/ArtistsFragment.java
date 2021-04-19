@@ -37,12 +37,9 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
-import de.voidplus.soundcloud.Track;
-import de.voidplus.soundcloud.User;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
-import sammyt.cloudplayer.data_sc.CloudQueue;
-import sammyt.cloudplayer.data_sc.TracksTask;
+import sammyt.cloudplayer.data.CloudQueue;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.nav.TrackAdapter;
 import sammyt.cloudplayer.nav.TrackViewModel;
@@ -203,31 +200,6 @@ public class ArtistsFragment extends Fragment {
         }
     };
 
-    private void loadTrackData(){
-        Log.d(LOG_TAG, "Load track data");
-
-        setVisibleView(VisibleView.loading);
-
-        TracksTask trackDataTask = new TracksTask(
-                getString(R.string.client_id),
-                getString(R.string.client_secret),
-                getString(R.string.login_name),
-                getString(R.string.login_password)
-        );
-        trackDataTask.execute();
-        trackDataTask.setOnFinishListener(new TracksTask.onFinishListener() {
-            @Override
-            public void onFinish(User user, ArrayList<Track> faveTracks) {
-//                trackViewModel.setTracks(faveTracks);
-            }
-
-            @Override
-            public void onFailure() {
-                setVisibleView(VisibleView.error);
-            }
-        });
-    }
-
     private void loadTrackDataFromVolley(String url){
         RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
 
@@ -235,7 +207,6 @@ public class ArtistsFragment extends Fragment {
 
         if(url == null) {
             Log.d(LOG_TAG, "Loading track data from volley.");
-
             setVisibleView(VisibleView.loading);
 
             String endpoint = "/me/likes/tracks";
@@ -249,7 +220,7 @@ public class ArtistsFragment extends Fragment {
             public void onResponse(JSONObject response) {
                 Log.d(LOG_TAG, "Volley response:\n" + response);
 
-                try{
+                try {
                     JSONArray collection = response.getJSONArray("collection");
 
                     String nextPage = response.optString("next_href");
@@ -262,13 +233,15 @@ public class ArtistsFragment extends Fragment {
                         mTracks.add(jsonObject);
                     }
 
-                    if(!nextPage.equals("") && !nextPage.equals("null")){
+                    // Load the next page if one exists
+                    // or update the ViewModel
+                    if(!nextPage.equals("") && !nextPage.equals("null")) {
                         loadTrackDataFromVolley(nextPage + auth);
-                    }else{
+                    } else {
                         trackViewModel.setTracks(mTracks);
                     }
 
-                }catch(JSONException e){
+                } catch(JSONException e) {
                     Log.e(LOG_TAG, "Error parsing response json", e);
                     setVisibleView(VisibleView.error);
                 }
@@ -353,6 +326,7 @@ public class ArtistsFragment extends Fragment {
         String defaultUrl = "https://a1.sndcdn.com/images/default_avatar_large.png";
 
         if(rawUrl != null && !rawUrl.equals(defaultUrl)){
+            //// TODO: SC is odd and I don't remember why I'm doing this here
             final String trackArtUrl = rawUrl.replace("large", "t500x500");
 
             // Load the track image
