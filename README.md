@@ -13,6 +13,7 @@ If you're looking to build and run this project, you should take note of the fol
 (Authentication is initiated via the Login activity's `Connect` button. It opens the browser to SoundCloud's Connect page for the user to approve access to their account. After approval, the page redirects to the app's `Redirect URI`. The url parameter `code` value must be copied into the Login activity's `Authorization code` edit text field to login.)
 
 ## Dependencies
+- [Volley](https://github.com/google/volley)
 - [Picasso](https://github.com/square/picasso)
 - [Nier Visualizer](https://github.com/bogerchan/Nier-Visualizer)
 - [Sticky-LayoutManager](https://github.com/qiujayen/sticky-layoutmanager)
