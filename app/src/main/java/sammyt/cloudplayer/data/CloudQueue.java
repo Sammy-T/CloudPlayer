@@ -30,7 +30,11 @@ public class CloudQueue {
         return mInstance;
     }
 
-    public RequestQueue getRequestQueue(){
+    /**
+     * Returns the app's Volley RequestQueue, creating one if it doesn't already exist.
+     * @return The app's Volley RequestQueue
+     */
+    public RequestQueue getRequestQueue() {
         // If the Request Queue is null,
         // create a new one using the Application Context
         if(mRequestQueue == null){
