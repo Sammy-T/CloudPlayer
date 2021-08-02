@@ -11,6 +11,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
@@ -72,9 +73,6 @@ public class HomeFragment extends Fragment {
         mAdapter.setOnTrackClickListener(mTrackClickListener);
         mTrackRecycler.setAdapter(mAdapter);
 
-        // Retrieve the token from the activity
-        token = ((NavActivity) requireActivity()).token;
-
         // Set up the ViewModels
         ViewModelProvider activityModelProvider = new ViewModelProvider(requireActivity());
         trackViewModel = activityModelProvider.get(TrackViewModel.class);
@@ -84,6 +82,10 @@ public class HomeFragment extends Fragment {
         trackViewModel.getTracks().observe(getViewLifecycleOwner(), new Observer<ArrayList<JSONObject>>() {
             @Override
             public void onChanged(ArrayList<JSONObject> tracks) {
+                // Since we're initializing the View Model before we're able to retrieve the
+                // activity's token, ignore callbacks without it (i.e. the initial callback).
+                if(token == null) return;
+
                 String logMessage = "ViewModel onChanged - ";
 
                 if(tracks == null){
@@ -137,6 +139,21 @@ public class HomeFragment extends Fragment {
         });
 
         return root;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // Retrieve the token from the activity.
+        // (It might still be null if called from an earlier Fragment lifecycle)
+        token = ((NavActivity) requireActivity()).token;
+
+        // Perform the initial load if necessary.
+        if(trackViewModel.getTracks().getValue() == null) {
+            Log.d(LOG_TAG, "New load from onStart");
+            loadTrackDataFromVolley(null);
+        }
     }
 
     private TrackAdapter.onTrackClickListener mTrackClickListener = new TrackAdapter.onTrackClickListener() {

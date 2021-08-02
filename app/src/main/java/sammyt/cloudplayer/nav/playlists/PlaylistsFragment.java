@@ -103,9 +103,6 @@ public class PlaylistsFragment extends Fragment {
         mTrackAdapter.setOnTrackClickListener(mTrackClickListener);
         mPlaylistTrackRecycler.setAdapter(mTrackAdapter);
 
-        // Retrieve the token from the activity
-        token = ((NavActivity) requireActivity()).token;
-
         // Set up ViewModels
         ViewModelProvider activityModelProvider = new ViewModelProvider(requireActivity());
         playlistsViewModel = activityModelProvider.get(PlaylistsViewModel.class);
@@ -115,6 +112,10 @@ public class PlaylistsFragment extends Fragment {
         playlistsViewModel.getPlaylists().observe(getViewLifecycleOwner(), new Observer<ArrayList<JSONObject>>() {
             @Override
             public void onChanged(ArrayList<JSONObject> playlists) {
+                // Since we're initializing the View Model before we're able to retrieve the
+                // activity's token, ignore callbacks without it (i.e. the initial callback).
+                if(token == null) return;
+
                 String logMessage = "ViewModel onChanged - ";
 
                 if(playlists == null){
@@ -176,6 +177,20 @@ public class PlaylistsFragment extends Fragment {
         ((NavActivity) requireActivity()).setOnBackListener(onBackListener);
 
         return root;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // Retrieve the token from the activity
+        token = ((NavActivity) requireActivity()).token;
+
+        // Perform the initial load if necessary
+        if(playlistsViewModel.getPlaylists().getValue() == null) {
+            Log.d(LOG_TAG, "New load from onStart");
+            loadPlaylistDataFromVolley();
+        }
     }
 
     private PlaylistAdapter.onPlaylistClickListener mPlaylistClickListener = new PlaylistAdapter.onPlaylistClickListener() {
