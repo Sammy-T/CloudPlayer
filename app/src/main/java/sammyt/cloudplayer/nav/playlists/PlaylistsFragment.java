@@ -20,6 +20,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -31,6 +32,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
@@ -227,10 +230,8 @@ public class PlaylistsFragment extends Fragment {
         Log.d(LOG_TAG, "Loading playlist data from volley.");
         setVisibleView(VisibleView.loading);
 
-        final String auth = "oauth_token=" + token;
-
         String endpoint = "/me/playlists";
-        String url = getString(R.string.api_root) + endpoint + "?" + auth;
+        String url = getString(R.string.api_root) + endpoint;
 
         Response.Listener<JSONArray> responseListener = new Response.Listener<JSONArray>() {
             @Override
@@ -269,7 +270,16 @@ public class PlaylistsFragment extends Fragment {
                 url,
                 null,
                 responseListener,
-                errorListener);
+                errorListener) {
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                // Include auth in the header
+                Map<String, String> params = new HashMap<>();
+                params.put("Authorization", "OAuth " + token);
+
+                return params;
+            }
+        };
 
         queue.add(jsonRequest);
     }

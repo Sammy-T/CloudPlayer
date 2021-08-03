@@ -22,6 +22,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -36,6 +37,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
@@ -218,14 +221,12 @@ public class ArtistsFragment extends Fragment {
     private void loadTrackDataFromVolley(String url){
         RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
 
-        final String auth = "&oauth_token=" + token;
-
         if(url == null) {
             Log.d(LOG_TAG, "Loading track data from volley.");
             setVisibleView(VisibleView.loading);
 
             String endpoint = "/me/likes/tracks";
-            url = getString(R.string.api_root) + endpoint + "?linked_partitioning=true" + auth;
+            url = getString(R.string.api_root) + endpoint + "?linked_partitioning=true";
 
             mTracks.clear(); // Make sure we're not appending to possibly stale data
         }
@@ -251,7 +252,7 @@ public class ArtistsFragment extends Fragment {
                     // Load the next page if one exists
                     // or update the ViewModel
                     if(!nextPage.equals("") && !nextPage.equals("null")) {
-                        loadTrackDataFromVolley(nextPage + auth);
+                        loadTrackDataFromVolley(nextPage);
                     } else {
                         trackViewModel.setTracks(mTracks);
                     }
@@ -276,7 +277,16 @@ public class ArtistsFragment extends Fragment {
                 url,
                 null,
                 responseListener,
-                errorListener);
+                errorListener) {
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                // Include auth in the header
+                Map<String, String> params = new HashMap<>();
+                params.put("Authorization", "OAuth " + token);
+
+                return params;
+            }
+        };
 
         queue.add(jsonRequest);
     }
