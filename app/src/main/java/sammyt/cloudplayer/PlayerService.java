@@ -8,6 +8,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
@@ -27,6 +28,10 @@ import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.analytics.AnalyticsListener;
+import com.google.android.exoplayer2.source.DefaultMediaSourceFactory;
+import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.MediaSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
@@ -35,6 +40,8 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -64,6 +71,7 @@ public class PlayerService extends Service {
 
     private Uri mUri;
     private SimpleExoPlayer mPlayer;
+    private DefaultHttpDataSource.Factory dataSourceFactory;
     private Handler mHandler = new Handler();
     private ScheduledExecutorService mExecutor;
     private ScheduledFuture<?> mFuture;
@@ -85,9 +93,21 @@ public class PlayerService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-
         Log.d(LOG_TAG, "PlayerService created.");
+
         mExecutor = Executors.newSingleThreadScheduledExecutor();
+
+        // Retrieve the token
+        SharedPreferences sharedPrefs = mContext.getSharedPreferences(getString(R.string.pref_file_key), Context.MODE_PRIVATE);
+        String token = sharedPrefs.getString(getString(R.string.token_key), "");
+
+        // Create the request header parameters
+        Map<String, String> params = new HashMap<>();
+        params.put("Authorization", "OAuth " + token);
+
+        // Create the Data Source factory and add the header parameters
+        dataSourceFactory = new DefaultHttpDataSource.Factory();
+        dataSourceFactory.setDefaultRequestProperties(params);
     }
 
     @Override
@@ -344,7 +364,7 @@ public class PlayerService extends Service {
             @Override
             public void run() {
                 try{
-                    mUri = Uri.parse(mTracks.get(mCurrentTrack).getString("stream_url") + "?client_id="+ getString(R.string.client_id));
+                    mUri = Uri.parse(mTracks.get(mCurrentTrack).getString("stream_url"));
                     Log.d(LOG_TAG, "---- Track URI ----\n" + mUri);
                 }catch(JSONException | NullPointerException e){
                     String message = "Error loading track. Possible Server Issue.";
@@ -362,8 +382,14 @@ public class PlayerService extends Service {
 
                         mPlayer.stop(); // Stop playing the previous track
 
+                        // Prepare the Media Source using the DefaultHttpDataSource.Factory
+                        // so the custom authorization parameter is included in the request header.
+                        MediaSourceFactory mediaSourceFactory = new DefaultMediaSourceFactory(dataSourceFactory);
+                        MediaSource mediaSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(mUri));
+
                         // Prepare the player with the track and start playing
-                        mPlayer.setMediaItem(MediaItem.fromUri(mUri));
+                        mPlayer.setMediaSource(mediaSource);
+
                         mPlayer.prepare();
                         mPlayer.play();
 
