@@ -139,7 +139,7 @@ public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 @Override
                 public void onClick(View v) {
                     if(mListener != null){
-                        mListener.onArtistClick(artistHolder.getAdapterPosition(), artist);
+                        mListener.onArtistClick(artistHolder.getBindingAdapterPosition(), artist);
                     }
                 }
             });

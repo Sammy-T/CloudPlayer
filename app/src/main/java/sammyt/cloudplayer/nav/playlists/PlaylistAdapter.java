@@ -116,7 +116,7 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHo
             @Override
             public void onClick(View v) {
                 if(mListener != null){
-                    mListener.onPlaylistClick(holder.getAdapterPosition(), playlist);
+                    mListener.onPlaylistClick(holder.getBindingAdapterPosition(), playlist);
                 }
             }
         });

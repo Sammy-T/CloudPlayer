@@ -113,7 +113,7 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.ViewHolder> 
             @Override
             public void onClick(View v) {
                 if(mListener != null){
-                    mListener.onQueueClick(holder.getAdapterPosition(), track);
+                    mListener.onQueueClick(holder.getBindingAdapterPosition(), track);
                 }
             }
         });
@@ -122,7 +122,7 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.ViewHolder> 
             @Override
             public void onClick(View v) {
                 if(mListener != null){
-                    mListener.onQueueRemove(holder.getAdapterPosition(), track);
+                    mListener.onQueueRemove(holder.getBindingAdapterPosition(), track);
                 }
             }
         });

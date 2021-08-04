@@ -148,7 +148,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
             @Override
             public void onClick(View v) {
                 if(mListener != null){
-                    mListener.onTrackClick(holder.getAdapterPosition(), track);
+                    mListener.onTrackClick(holder.getBindingAdapterPosition(), track);
                 }
             }
         });
