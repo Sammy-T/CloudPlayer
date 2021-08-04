@@ -156,12 +156,6 @@ public class HomeFragment extends Fragment {
         // Retrieve the token from the activity.
         // (It might still be null if called from an earlier Fragment lifecycle)
         token = ((NavActivity) requireActivity()).token;
-
-        // Perform the initial load if necessary.
-        if(trackViewModel.getTracks().getValue() == null) {
-            Log.d(LOG_TAG, "New load from onStart");
-            loadTrackDataFromVolley(null);
-        }
     }
 
     private TrackAdapter.onTrackClickListener mTrackClickListener = new TrackAdapter.onTrackClickListener() {
