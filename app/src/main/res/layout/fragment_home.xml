@@ -16,13 +16,29 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
-    <FrameLayout
+
+    <ViewFlipper
+        android:id="@+id/home_flipper"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/title_liked_text"
         app:layout_constraintBottom_toBottomOf="parent">
+        <!-- Loading -->
+        <ProgressBar
+            android:id="@+id/loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" />
+
+        <!-- RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/liked_tracks_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Error message -->
         <LinearLayout
             android:id="@+id/error"
             android:layout_width="wrap_content"
@@ -36,20 +52,38 @@
                 android:textSize="16sp"
                 android:text="@string/error_loading" />
             <Button
-                android:id="@+id/retry_liked"
+                android:id="@+id/retry"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/retry"
                 style="@style/Widget.AppCompat.Button.Colored" />
         </LinearLayout>
-        <ProgressBar
-            android:id="@+id/loading"
+
+        <!-- Auth Error message -->
+        <LinearLayout
+            android:id="@+id/error_auth"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center" />
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/liked_tracks_recycler"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-    </FrameLayout>
+            android:orientation="vertical"
+            android:layout_gravity="center"
+            android:gravity="center">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:text="@string/error_auth" />
+            <Button
+                android:id="@+id/retry2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/retry"
+                style="@style/Widget.AppCompat.Button.Colored" />
+            <Button
+                android:id="@+id/refresh_auth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/refresh_auth"
+                style="@style/ButtonBorderlessColored" />
+        </LinearLayout>
+    </ViewFlipper>
 </androidx.constraintlayout.widget.ConstraintLayout>

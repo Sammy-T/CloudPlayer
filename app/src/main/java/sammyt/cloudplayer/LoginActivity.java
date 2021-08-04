@@ -38,6 +38,9 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = LoginActivity.class.getSimpleName();
 
+    public static final String EXTRA_ACTION = "extra_action";
+    public static final String ACTION_REFRESH = "refresh";
+
     private String apiRoot;
     private String clientId;
     private String clientSecret;
@@ -96,10 +99,14 @@ public class LoginActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        // Check for a saved token and navigate to the Nav Activity if one is found
+        String actionOverride = getIntent().getStringExtra(EXTRA_ACTION);
         String token = sharedPrefs.getString(getString(R.string.token_key), "");
-        if(!token.equals("")) {
-            redirectToNavActivity();
+        String refreshToken = sharedPrefs.getString(getString(R.string.refresh_token_key), "");
+
+        if(actionOverride != null && actionOverride.equals(ACTION_REFRESH)) {
+            requestTokenRefresh(refreshToken);
+        } else if(!token.equals("") && !refreshToken.equals("")) {
+            redirectToNavActivity(); // Navigate to the Nav activity if a token is found
         }
     }
 
@@ -114,20 +121,55 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         String responseType = "code";
-        String scope = "non-expiring";
 
         String endpoint = "/connect";
         String url = apiRoot + endpoint
                 + "?client_id=" + clientId
                 + "&redirect_uri=" + redirectUri
-                + "&response_type=" + responseType
-                + "&scope=" + scope;
+                + "&response_type=" + responseType;
 
         // Open the '/connect' endpoint in the browser
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setData(Uri.parse(url));
         startActivity(intent);
     }
+
+    Response.Listener<String> responseListener = new Response.Listener<String>() {
+        @Override
+        public void onResponse(String response) {
+            Log.d(LOG_TAG, "Request token response:\n" + response);
+            try {
+                JSONObject responseObject = new JSONObject(response);
+                String token = responseObject.getString("access_token");
+                String refreshToken = responseObject.getString("refresh_token");
+
+                if(token.equals("")) {
+                    String msg = "No token received";
+                    Log.e(LOG_TAG, msg);
+                    Toast.makeText(LoginActivity.this, msg, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // Save the token and navigate to the Nav Activity
+                SharedPreferences.Editor editor = sharedPrefs.edit();
+                editor.putString(getString(R.string.token_key), token);
+                editor.putString(getString(R.string.refresh_token_key), refreshToken);
+                editor.apply();
+
+                redirectToNavActivity();
+
+            } catch(JSONException e) {
+                Log.e(LOG_TAG, "Error parsing response", e);
+            }
+        }
+    };
+
+    Response.ErrorListener errorListener = new Response.ErrorListener() {
+        @Override
+        public void onErrorResponse(VolleyError error) {
+            Log.e(LOG_TAG, "Volley error requesting token", error);
+        }
+    };
 
     /**
      * Uses the auth code to request an access token.
@@ -168,39 +210,53 @@ public class LoginActivity extends AppCompatActivity {
             builder.append(entry.getValue());
         }
 
-        Response.Listener<String> responseListener = new Response.Listener<String>() {
+        StringRequest stringRequest = new StringRequest(
+                Request.Method.POST,
+                url,
+                responseListener,
+                errorListener) {
             @Override
-            public void onResponse(String response) {
-                try {
-                    JSONObject responseObject = new JSONObject(response);
-                    String token = responseObject.getString("access_token");
-
-                    if(token.equals("")) {
-                        String msg = "No token received";
-                        Log.e(LOG_TAG, msg);
-                        Toast.makeText(LoginActivity.this, msg, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    // Save the token and navigate to the Nav Activity
-                    SharedPreferences.Editor editor = sharedPrefs.edit();
-                    editor.putString(getString(R.string.token_key), token);
-                    editor.apply();
-
-                    redirectToNavActivity();
-
-                } catch(JSONException e) {
-                    Log.e(LOG_TAG, "Error parsing response", e);
-                }
+            public byte[] getBody() throws AuthFailureError {
+                // Include the body in the request
+                return builder.substring(1).getBytes(StandardCharsets.UTF_8);
             }
         };
 
-        Response.ErrorListener errorListener = new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e(LOG_TAG, "Volley error requesting token", error);
-            }
-        };
+        queue.add(stringRequest);
+    }
+
+    private void requestTokenRefresh(String refreshToken) {
+        if(refreshToken.equals("")) {
+            String msg = "No refresh token.";
+            Log.e(LOG_TAG, msg);
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Log.d(LOG_TAG, "Refreshing token. " + refreshToken);
+        Toast.makeText(this, "Refreshing token.", Toast.LENGTH_SHORT).show();
+
+        RequestQueue queue = CloudQueue.getInstance(this).getRequestQueue();
+
+        String endpoint = "/oauth2/token";
+        String url = apiRoot + endpoint;
+
+        // Add the request parameters
+        final HashMap<String, String> params = new HashMap<>();
+        params.put("grant_type", "refresh_token");
+        params.put("client_id", clientId);
+        params.put("client_secret", clientSecret);
+        params.put("redirect_uri", redirectUri);
+        params.put("refresh_token", refreshToken);
+
+        // Build the request body in application/x-www-form-urlencoded format
+        final StringBuilder builder = new StringBuilder();
+        for(Map.Entry<String, String> entry: params.entrySet()) {
+            builder.append("&");
+            builder.append(entry.getKey());
+            builder.append("=");
+            builder.append(entry.getValue());
+        }
 
         StringRequest stringRequest = new StringRequest(
                 Request.Method.POST,
@@ -210,7 +266,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public byte[] getBody() throws AuthFailureError {
                 // Include the body in the request
-                return builder.toString().substring(1).getBytes(StandardCharsets.UTF_8);
+                return builder.substring(1).getBytes(StandardCharsets.UTF_8);
             }
         };
 

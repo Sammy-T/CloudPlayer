@@ -125,6 +125,10 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHo
     // Return the size of the dataset (invoked by Layout Manager)
     @Override
     public int getItemCount(){
+        if(mPlaylists == null){
+            Log.wtf(LOG_TAG, "How the f*ck are you null?!");
+            return 0;
+        }
         return mPlaylists.size();
     }
 

@@ -1,5 +1,6 @@
 package sammyt.cloudplayer.nav.artists;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -10,10 +11,8 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.ViewSwitcher;
+import android.widget.ViewFlipper;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -40,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import sammyt.cloudplayer.LoginActivity;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.data.CloudQueue;
@@ -53,16 +53,14 @@ public class ArtistsFragment extends Fragment {
 
     private String token;
 
+    private ViewFlipper viewFlipper;
+    private ImageView mArtistImage;
+    private TextView mArtistTitle;
+
     private Handler mHandler = new Handler();
 
     private TrackViewModel trackViewModel;
     private SelectedTrackModel selectedTrackModel;
-
-    private ProgressBar mLoadingView;
-    private LinearLayout mErrorView;
-    private ViewSwitcher mSwitcher;
-    private ImageView mArtistImage;
-    private TextView mArtistTitle;
 
     private ArtistsAdapter mAdapter;
     private TrackAdapter mTrackAdapter;
@@ -72,16 +70,16 @@ public class ArtistsFragment extends Fragment {
     private ArrayList<JSONObject> mTracks = new ArrayList<>();
 
     private enum VisibleView{
-        loading, loaded, error
+        loading, artist, selection, error, error_auth
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_artists, container, false);
 
-        mLoadingView = root.findViewById(R.id.loading);
-        mErrorView = root.findViewById(R.id.error);
-        Button retryLoading = root.findViewById(R.id.retry_artists);
-        mSwitcher = root.findViewById(R.id.artists_switcher);
+        viewFlipper = root.findViewById(R.id.artists_flipper);
+        Button retryLoading = root.findViewById(R.id.retry);
+        Button retryLoading2 = root.findViewById(R.id.retry2);
+        Button refreshAuth = root.findViewById(R.id.refresh_auth);
 
         // Switcher's artist list layout
         TextView titleView = root.findViewById(R.id.title_artists_text);
@@ -95,8 +93,8 @@ public class ArtistsFragment extends Fragment {
         // Set the View Switchers animations
         Animation inAnim = AnimationUtils.loadAnimation(getContext(), android.R.anim.slide_in_left);
         Animation outAnim = AnimationUtils.loadAnimation(getContext(), android.R.anim.slide_out_right);
-        mSwitcher.setInAnimation(inAnim);
-        mSwitcher.setOutAnimation(outAnim);
+        viewFlipper.setInAnimation(inAnim);
+        viewFlipper.setOutAnimation(outAnim);
 
         // Set up artist recycler view
         StickyHeadersLinearLayoutManager<ArtistsAdapter> layoutManager = new StickyHeadersLinearLayoutManager<>(getContext());
@@ -132,7 +130,7 @@ public class ArtistsFragment extends Fragment {
                     logMessage += "New load ";
                     loadTrackDataFromVolley(null);
                 }else{
-                    setVisibleView(VisibleView.loaded);
+                    setVisibleView(VisibleView.artist);
                 }
 
                 if(mAdapter != null){
@@ -155,20 +153,25 @@ public class ArtistsFragment extends Fragment {
             }
         });
 
-        // Allow manually refreshing the data by clicking on the title
-        titleView.setOnClickListener(new View.OnClickListener() {
+        View.OnClickListener reloadListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 loadTrackDataFromVolley(null);
             }
-        });
+        };
+
+        // Allow manually refreshing the data by clicking on the title
+        titleView.setOnClickListener(reloadListener);
 
         // The button shown if the data fails to load
         // Allows the user to manually retry loading the data
-        retryLoading.setOnClickListener(new View.OnClickListener() {
+        retryLoading.setOnClickListener(reloadListener);
+        retryLoading2.setOnClickListener(reloadListener);
+
+        refreshAuth.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                loadTrackDataFromVolley(null);
+            public void onClick(View view) {
+                refreshTokenAtLogin();
             }
         });
 
@@ -176,8 +179,8 @@ public class ArtistsFragment extends Fragment {
         NavActivity.onBackListener onBackListener = new NavActivity.onBackListener() {
             @Override
             public boolean onBack() {
-                if (mSwitcher.getDisplayedChild() == 1) {
-                    mSwitcher.setDisplayedChild(0); // Navigate back to the playlist list
+                if(getVisibleView() == VisibleView.selection) {
+                    setVisibleView(VisibleView.artist); // Navigate back to the artist list
                     return true; // Consume the back press event
                 }
 
@@ -268,7 +271,13 @@ public class ArtistsFragment extends Fragment {
             @Override
             public void onErrorResponse(VolleyError error) {
                 Log.e(LOG_TAG, "Volley error loading tracks.", error);
-                setVisibleView(VisibleView.error);
+
+                if(error.networkResponse.statusCode == 401) {
+                    Log.w(LOG_TAG, "Unauthorized access. Token:" + token);
+                    setVisibleView(VisibleView.error_auth);
+                } else {
+                    setVisibleView(VisibleView.error);
+                }
             }
         };
 
@@ -291,6 +300,14 @@ public class ArtistsFragment extends Fragment {
         queue.add(jsonRequest);
     }
 
+    private void refreshTokenAtLogin() {
+        Intent intent = new Intent(requireContext(), LoginActivity.class);
+        intent.putExtra(LoginActivity.EXTRA_ACTION, LoginActivity.ACTION_REFRESH);
+
+        startActivity(intent);
+        requireActivity().finish();
+    }
+
     private void selectArtist(JSONObject artist){
         String title = artist.optString("username");
         final String rawUrl = artist.optString("avatar_url");
@@ -299,7 +316,7 @@ public class ArtistsFragment extends Fragment {
 
         setArtistTracks(artist);
 
-        mSwitcher.setDisplayedChild(1);
+        setVisibleView(VisibleView.selection);
 
         mArtistImage.post(new Runnable() {
             @Override
@@ -395,22 +412,46 @@ public class ArtistsFragment extends Fragment {
     private void setVisibleView(VisibleView visibleView){
         switch(visibleView){
             case loading:
-                mLoadingView.setVisibility(View.VISIBLE);
-                mErrorView.setVisibility(View.GONE);
-                mSwitcher.setVisibility(View.GONE);
+                viewFlipper.setDisplayedChild(0);
                 break;
 
-            case loaded:
-                mLoadingView.setVisibility(View.GONE);
-                mErrorView.setVisibility(View.GONE);
-                mSwitcher.setVisibility(View.VISIBLE);
+            case artist:
+                viewFlipper.setDisplayedChild(1);
+                break;
+
+            case selection:
+                viewFlipper.setDisplayedChild(2);
                 break;
 
             case error:
-                mLoadingView.setVisibility(View.GONE);
-                mErrorView.setVisibility(View.VISIBLE);
-                mSwitcher.setVisibility(View.GONE);
+                viewFlipper.setDisplayedChild(3);
                 break;
+
+            case error_auth:
+                viewFlipper.setDisplayedChild(4);
+                break;
+        }
+    }
+
+    private VisibleView getVisibleView() {
+        switch(viewFlipper.getDisplayedChild()) {
+            case 0:
+                return VisibleView.loading;
+
+            case 1:
+                return VisibleView.artist;
+
+            case 2:
+                return VisibleView.selection;
+
+            case 3:
+                return VisibleView.error;
+
+            case 4:
+                return VisibleView.error_auth;
+
+            default:
+                return VisibleView.loading;
         }
     }
 }

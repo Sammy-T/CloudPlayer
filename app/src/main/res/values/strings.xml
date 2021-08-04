@@ -11,7 +11,9 @@
     <string name="queue">Queue</string>
 
     <string name="error_loading">Error loading data</string>
+    <string name="error_auth">Unauthorized access</string>
     <string name="retry">Retry</string>
+    <string name="refresh_auth">Refresh Login</string>
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>

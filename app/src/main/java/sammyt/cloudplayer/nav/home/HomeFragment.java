@@ -1,17 +1,16 @@
 package sammyt.cloudplayer.nav.home;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.ViewFlipper;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
@@ -24,7 +23,6 @@ import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -34,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import sammyt.cloudplayer.LoginActivity;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.data.CloudQueue;
@@ -47,35 +46,35 @@ public class HomeFragment extends Fragment {
 
     private String token;
 
+    private ViewFlipper viewFlipper;
+
     private TrackViewModel trackViewModel;
     private SelectedTrackModel selectedTrackModel;
 
-    private ProgressBar mLoadingView;
-    private LinearLayout mErrorView;
-    private RecyclerView mTrackRecycler;
     private TrackAdapter mAdapter;
 
     private ArrayList<JSONObject> mTracks = new ArrayList<>();
 
     private enum VisibleView{
-        loading, loaded, error
+        loading, loaded, error, error_auth
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_home, container, false);
 
+        viewFlipper = root.findViewById(R.id.home_flipper);
         TextView titleView = root.findViewById(R.id.title_liked_text);
-        mTrackRecycler = root.findViewById(R.id.liked_tracks_recycler);
-        mLoadingView = root.findViewById(R.id.loading);
-        mErrorView = root.findViewById(R.id.error);
-        Button retryLoading = root.findViewById(R.id.retry_liked);
+        RecyclerView trackRecycler = root.findViewById(R.id.liked_tracks_recycler);
+        Button retryLoading = root.findViewById(R.id.retry);
+        Button retryLoading2 = root.findViewById(R.id.retry2);
+        Button refreshAuth = root.findViewById(R.id.refresh_auth);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
-        mTrackRecycler.setLayoutManager(layoutManager);
+        trackRecycler.setLayoutManager(layoutManager);
 
         mAdapter = new TrackAdapter(getContext(), null);
         mAdapter.setOnTrackClickListener(mTrackClickListener);
-        mTrackRecycler.setAdapter(mAdapter);
+        trackRecycler.setAdapter(mAdapter);
 
         // Set up the ViewModels
         ViewModelProvider activityModelProvider = new ViewModelProvider(requireActivity());
@@ -125,20 +124,25 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        // Allow manually refreshing the data by clicking on the title
-        titleView.setOnClickListener(new View.OnClickListener() {
+        View.OnClickListener reloadListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 loadTrackDataFromVolley(null);
             }
-        });
+        };
+
+        // Allow manually refreshing the data by clicking on the title
+        titleView.setOnClickListener(reloadListener);
 
         // The button shown if the data fails to load
         // Allows the user to manually retry loading the data
-        retryLoading.setOnClickListener(new View.OnClickListener() {
+        retryLoading.setOnClickListener(reloadListener);
+        retryLoading2.setOnClickListener(reloadListener);
+
+        refreshAuth.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                loadTrackDataFromVolley(null);
+            public void onClick(View view) {
+                refreshTokenAtLogin();
             }
         });
 
@@ -219,7 +223,13 @@ public class HomeFragment extends Fragment {
             @Override
             public void onErrorResponse(VolleyError error) {
                 Log.e(LOG_TAG, "Volley error loading tracks.", error);
-                setVisibleView(VisibleView.error);
+
+                if(error.networkResponse.statusCode == 401) {
+                    Log.w(LOG_TAG, "Unauthorized access. Token:" + token);
+                    setVisibleView(VisibleView.error_auth);
+                } else {
+                    setVisibleView(VisibleView.error);
+                }
             }
         };
 
@@ -242,24 +252,30 @@ public class HomeFragment extends Fragment {
         queue.add(jsonRequest);
     }
 
+    private void refreshTokenAtLogin() {
+        Intent intent = new Intent(requireContext(), LoginActivity.class);
+        intent.putExtra(LoginActivity.EXTRA_ACTION, LoginActivity.ACTION_REFRESH);
+
+        startActivity(intent);
+        requireActivity().finish();
+    }
+
     private void setVisibleView(VisibleView visibleView){
         switch(visibleView){
             case loading:
-                mLoadingView.setVisibility(View.VISIBLE);
-                mTrackRecycler.setVisibility(View.GONE);
-                mErrorView.setVisibility(View.GONE);
+                viewFlipper.setDisplayedChild(0);
                 break;
 
             case loaded:
-                mLoadingView.setVisibility(View.GONE);
-                mTrackRecycler.setVisibility(View.VISIBLE);
-                mErrorView.setVisibility(View.GONE);
+                viewFlipper.setDisplayedChild(1);
                 break;
 
             case error:
-                mLoadingView.setVisibility(View.GONE);
-                mTrackRecycler.setVisibility(View.GONE);
-                mErrorView.setVisibility(View.VISIBLE);
+                viewFlipper.setDisplayedChild(2);
+                break;
+
+            case error_auth:
+                viewFlipper.setDisplayedChild(3);
                 break;
         }
     }

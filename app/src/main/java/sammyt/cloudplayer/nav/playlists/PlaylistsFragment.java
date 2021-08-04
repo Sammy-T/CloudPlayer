@@ -1,5 +1,6 @@
 package sammyt.cloudplayer.nav.playlists;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -8,10 +9,8 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.ViewSwitcher;
+import android.widget.ViewFlipper;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -35,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import sammyt.cloudplayer.LoginActivity;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.data.CloudQueue;
@@ -47,16 +47,14 @@ public class PlaylistsFragment extends Fragment {
 
     private String token;
 
-    private PlaylistsViewModel playlistsViewModel;
-    private SelectedTrackModel selectedTrackModel;
-
-    private ProgressBar mLoadingView;
-    private LinearLayout mErrorView;
-    private ViewSwitcher mSwitcher;
+    private ViewFlipper viewFlipper;
     private RecyclerView mPlaylistRecycler;
     private TextView mPlaylistSelectedTitle;
     private TextView mPlaylistSelectedCount;
     private RecyclerView mPlaylistTrackRecycler;
+
+    private PlaylistsViewModel playlistsViewModel;
+    private SelectedTrackModel selectedTrackModel;
 
     private PlaylistAdapter mAdapter;
     private TrackAdapter mTrackAdapter;
@@ -64,16 +62,16 @@ public class PlaylistsFragment extends Fragment {
     private JSONObject mSelectedPlaylist; 
 
     private enum VisibleView{
-        loading, loaded, error
+        loading, playlist, selection, error, error_auth
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_playlists, container, false);
 
-        mLoadingView = root.findViewById(R.id.loading);
-        mErrorView = root.findViewById(R.id.error);
-        Button retryLoading = root.findViewById(R.id.retry_playlists);
-        mSwitcher = root.findViewById(R.id.playlists_switcher);
+        viewFlipper = root.findViewById(R.id.playlist_flipper);
+        Button retryLoading = root.findViewById(R.id.retry);
+        Button retryLoading2 = root.findViewById(R.id.retry2);
+        Button refreshAuth = root.findViewById(R.id.refresh_auth);
 
         // Switcher's playlist list layout
         TextView titleView = root.findViewById(R.id.title_playlists_text);
@@ -87,8 +85,8 @@ public class PlaylistsFragment extends Fragment {
         // Set the View Switchers animations
         Animation inAnim = AnimationUtils.loadAnimation(getContext(), android.R.anim.slide_in_left);
         Animation outAnim = AnimationUtils.loadAnimation(getContext(), android.R.anim.slide_out_right);
-        mSwitcher.setInAnimation(inAnim);
-        mSwitcher.setOutAnimation(outAnim);
+        viewFlipper.setInAnimation(inAnim);
+        viewFlipper.setOutAnimation(outAnim);
 
         // Set up the playlist recycler view
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
@@ -124,7 +122,7 @@ public class PlaylistsFragment extends Fragment {
                 if(playlists == null){
                     loadPlaylistDataFromVolley();
                 }else{
-                    setVisibleView(VisibleView.loaded);
+                    setVisibleView(VisibleView.playlist);
                 }
 
                 if(mAdapter != null){
@@ -147,20 +145,25 @@ public class PlaylistsFragment extends Fragment {
             }
         });
 
-        // Allow manually refreshing the data by clicking on the title
-        titleView.setOnClickListener(new View.OnClickListener() {
+        View.OnClickListener reloadListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 loadPlaylistDataFromVolley();
             }
-        });
+        };
+
+        // Allow manually refreshing the data by clicking on the title
+        titleView.setOnClickListener(reloadListener);
 
         // The button shown if the data fails to load
         // Allows the user to manually retry loading the data
-        retryLoading.setOnClickListener(new View.OnClickListener() {
+        retryLoading.setOnClickListener(reloadListener);
+        retryLoading2.setOnClickListener(reloadListener);
+
+        refreshAuth.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                loadPlaylistDataFromVolley();
+            public void onClick(View view) {
+                refreshTokenAtLogin();
             }
         });
 
@@ -168,8 +171,8 @@ public class PlaylistsFragment extends Fragment {
         NavActivity.onBackListener onBackListener = new NavActivity.onBackListener() {
             @Override
             public boolean onBack() {
-                if (mSwitcher.getDisplayedChild() == 1) {
-                    mSwitcher.setDisplayedChild(0); // Navigate back to the playlist list
+                if(getVisibleView() == VisibleView.selection) {
+                    setVisibleView(VisibleView.playlist); // Navigate back to the playlist list
                     return true; // Consume the back press event
                 }
 
@@ -261,7 +264,13 @@ public class PlaylistsFragment extends Fragment {
             @Override
             public void onErrorResponse(VolleyError error) {
                 Log.e(LOG_TAG, "Error loading playlists", error);
-                setVisibleView(VisibleView.error);
+
+                if(error.networkResponse.statusCode == 401) {
+                    Log.w(LOG_TAG, "Unauthorized access. Token:" + token);
+                    setVisibleView(VisibleView.error_auth);
+                } else {
+                    setVisibleView(VisibleView.error);
+                }
             }
         };
 
@@ -282,6 +291,14 @@ public class PlaylistsFragment extends Fragment {
         };
 
         queue.add(jsonRequest);
+    }
+
+    private void refreshTokenAtLogin() {
+        Intent intent = new Intent(requireContext(), LoginActivity.class);
+        intent.putExtra(LoginActivity.EXTRA_ACTION, LoginActivity.ACTION_REFRESH);
+
+        startActivity(intent);
+        requireActivity().finish();
     }
 
     private void selectPlaylist(JSONObject playlist){
@@ -307,28 +324,52 @@ public class PlaylistsFragment extends Fragment {
             return;
         }
 
-        mSwitcher.setDisplayedChild(1);
+        setVisibleView(VisibleView.selection);
     }
 
     private void setVisibleView(VisibleView visibleView){
         switch(visibleView){
             case loading:
-                mLoadingView.setVisibility(View.VISIBLE);
-                mErrorView.setVisibility(View.GONE);
-                mSwitcher.setVisibility(View.GONE);
+                viewFlipper.setDisplayedChild(0);
                 break;
 
-            case loaded:
-                mLoadingView.setVisibility(View.GONE);
-                mErrorView.setVisibility(View.GONE);
-                mSwitcher.setVisibility(View.VISIBLE);
+            case playlist:
+                viewFlipper.setDisplayedChild(1);
+                break;
+
+            case selection:
+                viewFlipper.setDisplayedChild(2);
                 break;
 
             case error:
-                mLoadingView.setVisibility(View.GONE);
-                mErrorView.setVisibility(View.VISIBLE);
-                mSwitcher.setVisibility(View.GONE);
+                viewFlipper.setDisplayedChild(3);
                 break;
+
+            case error_auth:
+                viewFlipper.setDisplayedChild(4);
+                break;
+        }
+    }
+
+    private VisibleView getVisibleView() {
+        switch(viewFlipper.getDisplayedChild()) {
+            case 0:
+                return VisibleView.loading;
+
+            case 1:
+                return VisibleView.playlist;
+
+            case 2:
+                return VisibleView.selection;
+
+            case 3:
+                return VisibleView.error;
+
+            case 4:
+                return VisibleView.error_auth;
+
+            default:
+                return VisibleView.loading;
         }
     }
 }
