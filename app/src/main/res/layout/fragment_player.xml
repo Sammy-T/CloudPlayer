@@ -1,25 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".player.PlayerFragment">
 
-    <ImageView
-        android:id="@+id/track_image_2"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:src="@drawable/ic_play_grey600_48dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/track_title"/>
-    <SurfaceView
-        android:id="@+id/surface"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/track_title"/>
     <ImageButton
         android:id="@+id/player_back"
         android:layout_width="wrap_content"
@@ -27,95 +14,137 @@
         android:padding="8dp"
         android:src="@drawable/ic_arrow_left_black_36dp"
         style="@style/PlayerButton"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"/>
+        app:layout_constraintBottom_toBottomOf="@id/player_page_title"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/player_page_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="24dp"
+        android:text="@string/app_name"
+        android:textAlignment="center"
+        android:textSize="20sp"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/track_image_2"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:src="@drawable/ic_play_grey600_48dp"
+        app:layout_constraintTop_toBottomOf="@id/player_page_title"
+        app:layout_constraintBottom_toTopOf="@id/guideline3" />
+
+    <SurfaceView
+        android:id="@+id/surface"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/player_page_title"
+        app:layout_constraintBottom_toTopOf="@id/guideline3" />
+
     <TextView
         android:id="@+id/track_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp"
         android:paddingTop="6dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="2dp"
-        android:textSize="16sp"
         android:text="Track Title"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        android:textSize="16sp"
+        app:layout_constraintTop_toBottomOf="@id/guideline3" />
+
     <TextView
         android:id="@+id/track_artist"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp"
         android:paddingTop="1dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="3dp"
+        android:text="Track Artist"
         android:textColor="@color/colorAccent"
         android:textSize="14sp"
-        android:text="Track Artist"
         app:layout_constraintTop_toBottomOf="@id/track_title" />
+
     <SeekBar
         android:id="@+id/track_seekbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="6dp"
         android:max="1000"
+        android:padding="6dp"
         app:layout_constraintTop_toBottomOf="@id/track_artist" />
+
     <TextView
         android:id="@+id/track_time"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:text="00:00 / 00:00"
         android:textAlignment="center"
         android:textSize="14sp"
-        android:text="00:00 / 00:00"
         app:layout_constraintTop_toBottomOf="@id/track_seekbar" />
+
     <LinearLayout
         android:id="@+id/control_area"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:gravity="center"
+        android:orientation="horizontal"
         app:layout_constraintTop_toBottomOf="@id/track_time">
+
         <ImageButton
             android:id="@+id/shuffle"
+            style="@style/PlayerButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_shuffle_variant_black_36dp"
-            style="@style/PlayerButton" />
+            android:src="@drawable/ic_shuffle_variant_black_36dp" />
+
         <ImageButton
             android:id="@+id/previous"
+            style="@style/PlayerButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_skip_previous_black_36dp"
-            style="@style/PlayerButton" />
+            android:src="@drawable/ic_skip_previous_black_36dp" />
+
         <ImageButton
             android:id="@+id/play"
+            style="@style/PlayerButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_play_black_36dp"
-            style="@style/PlayerButton" />
+            android:src="@drawable/ic_play_black_36dp" />
+
         <ImageButton
             android:id="@+id/next"
+            style="@style/PlayerButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_skip_next_black_36dp"
-            style="@style/PlayerButton" />
+            android:src="@drawable/ic_skip_next_black_36dp" />
+
         <ImageButton
             android:id="@+id/repeat"
+            style="@style/PlayerButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_repeat_once_black_36dp"
-            style="@style/PlayerButton" />
+            android:src="@drawable/ic_repeat_once_black_36dp" />
     </LinearLayout>
+
     <ImageButton
         android:id="@+id/queue_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="24dp"
-        android:tint="@color/colorAccent"
         android:src="@drawable/ic_format_list_bulleted_black_24dp"
+        app:tint="@color/colorAccent"
         style="@style/PlayerButton"
+        app:layout_constraintTop_toBottomOf="@id/control_area"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent" />
 
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.6" />
 </androidx.constraintlayout.widget.ConstraintLayout>
