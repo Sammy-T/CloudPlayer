@@ -168,6 +168,7 @@ public class LoginActivity extends AppCompatActivity {
         @Override
         public void onErrorResponse(VolleyError error) {
             Log.e(LOG_TAG, "Volley error requesting token", error);
+            Toast.makeText(LoginActivity.this, "Error logging in", Toast.LENGTH_LONG).show();
         }
     };
 

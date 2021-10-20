@@ -1,6 +1,5 @@
 package sammyt.cloudplayer.nav.home;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -32,7 +31,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import sammyt.cloudplayer.LoginActivity;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.data.CloudQueue;
@@ -68,6 +66,7 @@ public class HomeFragment extends Fragment {
         Button retryLoading = root.findViewById(R.id.retry);
         Button retryLoading2 = root.findViewById(R.id.retry2);
         Button refreshAuth = root.findViewById(R.id.refresh_auth);
+        Button loginRedirect = root.findViewById(R.id.manual_login);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
         trackRecycler.setLayoutManager(layoutManager);
@@ -142,7 +141,14 @@ public class HomeFragment extends Fragment {
         refreshAuth.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                refreshTokenAtLogin();
+                ((NavActivity) requireActivity()).redirectToLogin(true);
+            }
+        });
+
+        loginRedirect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ((NavActivity) requireActivity()).redirectToLogin(false);
             }
         });
 
@@ -218,7 +224,7 @@ public class HomeFragment extends Fragment {
             public void onErrorResponse(VolleyError error) {
                 Log.e(LOG_TAG, "Volley error loading tracks.", error);
 
-                if(error.networkResponse.statusCode == 401) {
+                if(error.networkResponse != null && error.networkResponse.statusCode == 401) {
                     Log.w(LOG_TAG, "Unauthorized access. Token:" + token);
                     setVisibleView(VisibleView.error_auth);
                 } else {
@@ -244,14 +250,6 @@ public class HomeFragment extends Fragment {
         };
 
         queue.add(jsonRequest);
-    }
-
-    private void refreshTokenAtLogin() {
-        Intent intent = new Intent(requireContext(), LoginActivity.class);
-        intent.putExtra(LoginActivity.EXTRA_ACTION, LoginActivity.ACTION_REFRESH);
-
-        startActivity(intent);
-        requireActivity().finish();
     }
 
     private void setVisibleView(VisibleView visibleView){

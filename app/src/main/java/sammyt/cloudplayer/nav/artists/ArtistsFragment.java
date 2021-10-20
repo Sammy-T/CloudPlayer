@@ -1,6 +1,5 @@
 package sammyt.cloudplayer.nav.artists;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -39,7 +38,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import sammyt.cloudplayer.LoginActivity;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.data.CloudQueue;
@@ -171,7 +169,7 @@ public class ArtistsFragment extends Fragment {
         refreshAuth.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                refreshTokenAtLogin();
+                ((NavActivity) requireActivity()).redirectToLogin(true);
             }
         });
 
@@ -298,14 +296,6 @@ public class ArtistsFragment extends Fragment {
         };
 
         queue.add(jsonRequest);
-    }
-
-    private void refreshTokenAtLogin() {
-        Intent intent = new Intent(requireContext(), LoginActivity.class);
-        intent.putExtra(LoginActivity.EXTRA_ACTION, LoginActivity.ACTION_REFRESH);
-
-        startActivity(intent);
-        requireActivity().finish();
     }
 
     private void selectArtist(JSONObject artist){

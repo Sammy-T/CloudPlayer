@@ -163,7 +163,7 @@ public class PlaylistsFragment extends Fragment {
         refreshAuth.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                refreshTokenAtLogin();
+                ((NavActivity) requireActivity()).redirectToLogin(true);
             }
         });
 

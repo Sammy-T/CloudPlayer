@@ -178,6 +178,26 @@ public class NavActivity extends AppCompatActivity implements PlayerService.Play
         super.onDestroy();
     }
 
+    public void redirectToLogin(boolean refreshToken) {
+        Intent intent = new Intent(this, LoginActivity.class);
+
+        if(refreshToken) {
+            intent.putExtra(LoginActivity.EXTRA_ACTION, LoginActivity.ACTION_REFRESH);
+        } else {
+            // Remove the stored token data
+            SharedPreferences sharedPrefs = this.getSharedPreferences(getString(R.string.pref_file_key),
+                    Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPrefs.edit();
+
+            editor.remove(getString(R.string.token_key));
+            editor.remove(getString(R.string.refresh_token_key));
+            editor.apply();
+        }
+
+        startActivity(intent);
+        finish();
+    }
+
     private void init(){
         if(!mBound){
             Log.d(LOG_TAG, "Bind Service");
