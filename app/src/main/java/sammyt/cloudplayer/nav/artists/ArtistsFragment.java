@@ -76,8 +76,6 @@ public class ArtistsFragment extends Fragment {
 
         viewFlipper = root.findViewById(R.id.artists_flipper);
         Button retryLoading = root.findViewById(R.id.retry);
-        Button retryLoading2 = root.findViewById(R.id.retry2);
-        Button refreshAuth = root.findViewById(R.id.refresh_auth);
 
         // Switcher's artist list layout
         TextView titleView = root.findViewById(R.id.title_artists_text);
@@ -164,14 +162,6 @@ public class ArtistsFragment extends Fragment {
         // The button shown if the data fails to load
         // Allows the user to manually retry loading the data
         retryLoading.setOnClickListener(reloadListener);
-        retryLoading2.setOnClickListener(reloadListener);
-
-        refreshAuth.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                ((NavActivity) requireActivity()).redirectToLogin(true);
-            }
-        });
 
         // Respond to back presses
         NavActivity.onBackListener onBackListener = new NavActivity.onBackListener() {
@@ -271,8 +261,9 @@ public class ArtistsFragment extends Fragment {
                 Log.e(LOG_TAG, "Volley error loading tracks.", error);
 
                 if(error.networkResponse.statusCode == 401) {
+                    // Redirect to the login activity to attempt a token refresh
                     Log.w(LOG_TAG, "Unauthorized access. Token:" + token);
-                    setVisibleView(VisibleView.error_auth);
+                    ((NavActivity) requireActivity()).redirectToLogin(true);
                 } else {
                     setVisibleView(VisibleView.error);
                 }

@@ -36,31 +36,4 @@
             android:text="@string/retry"
             style="@style/Widget.AppCompat.Button.Colored" />
     </LinearLayout>
-
-    <!-- Auth Error message -->
-    <LinearLayout
-        android:id="@+id/error_auth"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_gravity="center"
-        android:gravity="center">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:text="@string/error_auth" />
-        <Button
-            android:id="@+id/retry2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/retry"
-            style="@style/Widget.AppCompat.Button.Colored" />
-        <Button
-            android:id="@+id/refresh_auth"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/refresh_auth"
-            style="@style/ButtonBorderlessColored" />
-    </LinearLayout>
 </ViewFlipper>
