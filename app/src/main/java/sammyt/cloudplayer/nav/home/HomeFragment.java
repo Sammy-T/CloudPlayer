@@ -54,7 +54,7 @@ public class HomeFragment extends Fragment {
     private ArrayList<JSONObject> mTracks = new ArrayList<>();
 
     private enum VisibleView{
-        loading, loaded, error, error_auth
+        loading, loaded, error
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -255,10 +255,6 @@ public class HomeFragment extends Fragment {
 
             case error:
                 viewFlipper.setDisplayedChild(2);
-                break;
-
-            case error_auth:
-                viewFlipper.setDisplayedChild(3);
                 break;
         }
     }

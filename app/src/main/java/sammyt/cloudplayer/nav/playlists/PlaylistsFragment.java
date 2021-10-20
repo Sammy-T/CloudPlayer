@@ -62,7 +62,7 @@ public class PlaylistsFragment extends Fragment {
     private JSONObject mSelectedPlaylist; 
 
     private enum VisibleView{
-        loading, playlist, selection, error, error_auth
+        loading, playlist, selection, error
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -335,10 +335,6 @@ public class PlaylistsFragment extends Fragment {
             case error:
                 viewFlipper.setDisplayedChild(3);
                 break;
-
-            case error_auth:
-                viewFlipper.setDisplayedChild(4);
-                break;
         }
     }
 
@@ -355,9 +351,6 @@ public class PlaylistsFragment extends Fragment {
 
             case 3:
                 return VisibleView.error;
-
-            case 4:
-                return VisibleView.error_auth;
 
             default:
                 return VisibleView.loading;

@@ -68,7 +68,7 @@ public class ArtistsFragment extends Fragment {
     private ArrayList<JSONObject> mTracks = new ArrayList<>();
 
     private enum VisibleView{
-        loading, artist, selection, error, error_auth
+        loading, artist, selection, error
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -407,10 +407,6 @@ public class ArtistsFragment extends Fragment {
             case error:
                 viewFlipper.setDisplayedChild(3);
                 break;
-
-            case error_auth:
-                viewFlipper.setDisplayedChild(4);
-                break;
         }
     }
 
@@ -427,9 +423,6 @@ public class ArtistsFragment extends Fragment {
 
             case 3:
                 return VisibleView.error;
-
-            case 4:
-                return VisibleView.error_auth;
 
             default:
                 return VisibleView.loading;
