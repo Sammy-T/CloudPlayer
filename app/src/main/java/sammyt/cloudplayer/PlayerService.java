@@ -21,9 +21,11 @@ import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
@@ -70,7 +72,7 @@ public class PlayerService extends Service {
     private ArrayList<JSONObject> mOriginalTracks;
 
     private Uri mUri;
-    private SimpleExoPlayer mPlayer;
+    private ExoPlayer mPlayer;
     private DefaultHttpDataSource.Factory dataSourceFactory;
     private Handler mHandler = new Handler();
     private ScheduledExecutorService mExecutor;
@@ -177,7 +179,7 @@ public class PlayerService extends Service {
         if(mPlayer == null) {
             AnalyticsListener analyticsListener = new AnalyticsListener() {
                 @Override
-                public void onPlaybackStateChanged(EventTime eventTime, int state) {
+                public void onPlaybackStateChanged(@NonNull EventTime eventTime, int state) {
                     // Loads the next track when current track has ended
                     if(state == Player.STATE_ENDED){
                         if(mRepeat){
@@ -193,7 +195,7 @@ public class PlayerService extends Service {
                 }
             };
 
-            mPlayer = new SimpleExoPlayer.Builder(mContext).build();
+            mPlayer = new ExoPlayer.Builder(mContext).build();
             mPlayer.addAnalyticsListener(analyticsListener);
 
             initFocus();
@@ -384,7 +386,7 @@ public class PlayerService extends Service {
 
                         // Prepare the Media Source using the DefaultHttpDataSource.Factory
                         // so the custom authorization parameter is included in the request header.
-                        MediaSourceFactory mediaSourceFactory = new DefaultMediaSourceFactory(dataSourceFactory);
+                        MediaSource.Factory mediaSourceFactory = new DefaultMediaSourceFactory(dataSourceFactory);
                         MediaSource mediaSource = mediaSourceFactory.createMediaSource(MediaItem.fromUri(mUri));
 
                         // Prepare the player with the track and start playing
@@ -628,9 +630,8 @@ public class PlayerService extends Service {
 
     @TargetApi(26)
     private NotificationChannel createChannel(){
-        //// TODO: Put useful values in here
-        String channelName = "CloudPlayer channel name";
-        String channelDescription = "CloudPlayer channel description";
+        String channelName = "CloudPlayer Media Player";
+        String channelDescription = "CloudPlayer basic media player and control";
         int importance = NotificationManager.IMPORTANCE_LOW;
 
         NotificationChannel channel = new NotificationChannel("CloudPlayer", channelName, importance);
