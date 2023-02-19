@@ -582,6 +582,7 @@ public class PlayerService extends Service {
                         .setShowWhen(false)
                         .setColor(ContextCompat.getColor(mContext, R.color.colorPrimary))
                         .setContentIntent(pendingIntent)
+                        .setOngoing(true)
                         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                         .setPriority(NotificationCompat.PRIORITY_DEFAULT);
 
