@@ -213,7 +213,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         mBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getActivity().onBackPressed();
+                requireActivity().onBackPressed();
             }
         });
 
@@ -242,7 +242,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
             Log.d(LOG_TAG, "Bind Service");
 
             Intent intent = new Intent(getContext(), PlayerService.class);
-            getContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+            requireContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         }
     }
 
@@ -251,7 +251,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         if(mBound){
             Log.d(LOG_TAG, "Unbind Service");
 
-            getContext().unbindService(mConnection);
+            requireContext().unbindService(mConnection);
             mBound = false;
         }
 
@@ -378,7 +378,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         Log.d(LOG_TAG, "state: " + state);
 
         Paint visPaint = new Paint();
-        visPaint.setColor(ContextCompat.getColor(getContext(), R.color.colorAccent));
+        visPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorAccent));
         visPaint.setAlpha(150);
 
         mVisualizerManager.start(mSurface, new IRenderer[]{new ColumnarType1Renderer(visPaint)});
@@ -419,7 +419,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
     }
 
     // Player Service Connection
-    private ServiceConnection mConnection = new ServiceConnection() {
+    private final ServiceConnection mConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.d(LOG_TAG, "Service Connected");
@@ -468,7 +468,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         return false;
     }
 
-    private ActivityResultLauncher<String> requestPermissionLauncher = registerForActivityResult(
+    private final ActivityResultLauncher<String> requestPermissionLauncher = registerForActivityResult(
             new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if(isGranted) {
                     Log.d(LOG_TAG, "Record Permission Granted");
