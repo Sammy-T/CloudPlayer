@@ -13,6 +13,8 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.os.Bundle;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -230,8 +232,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
             snackbar.setAction(action, new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    ActivityCompat.requestPermissions(getActivity(),
-                            new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQ_REC_AUDIO);
+                    requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
                 }
             });
             snackbar.show();
@@ -467,21 +468,14 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         return false;
     }
 
-    // Request Permission Callback
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permission,
-                                           @NonNull int[] grantResults){
-        switch(requestCode){
-            case PERMISSION_REQ_REC_AUDIO:
-                // If the request is cancelled, the result arrays are empty
-                if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+    private ActivityResultLauncher<String> requestPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if(isGranted) {
                     Log.d(LOG_TAG, "Record Permission Granted");
 
                     if(mBound){
                         initVisualizer(mService.getSessionId());
                     }
                 }
-                break;
-        }
-    }
+            });
 }
