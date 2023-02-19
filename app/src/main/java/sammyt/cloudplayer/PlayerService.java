@@ -572,7 +572,8 @@ public class PlayerService extends Service {
                         .setShowWhen(false)
                         .setColor(ContextCompat.getColor(mContext, R.color.colorPrimary))
                         .setContentIntent(pendingIntent)
-                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                        .setPriority(NotificationCompat.PRIORITY_DEFAULT);
 
                 try {
                     Bitmap trackImageIcon = Picasso.get()
