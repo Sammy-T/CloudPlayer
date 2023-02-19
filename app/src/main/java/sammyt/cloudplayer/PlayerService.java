@@ -546,9 +546,17 @@ public class PlayerService extends Service {
                     notificationManager.createNotificationChannel(createChannel());
                 }
 
+                int intentflags = PendingIntent.FLAG_UPDATE_CURRENT;
+
+                // Mutability must be set for PendingIntents when the device is Android 12 or higher
+                // https://developer.android.com/guide/components/intents-filters#DeclareMutabilityPendingIntent
+                if(Build.VERSION.SDK_INT >= 23) {
+                    intentflags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+                }
+
                 Intent notificationIntent = new Intent(mContext, NavActivity.class);
                 PendingIntent pendingIntent = PendingIntent.getActivity(mContext, 650,
-                        notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                        notificationIntent, intentflags);
 
                 JSONObject track = mTracks.get(mCurrentTrack);
                 String trackTitle;
@@ -653,6 +661,14 @@ public class PlayerService extends Service {
                 break;
         }
 
-        return PendingIntent.getService(mContext, requestCode, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        int intentflags = PendingIntent.FLAG_UPDATE_CURRENT;
+
+        // Mutability must be set for PendingIntents when the device is Android 12 or higher
+        // https://developer.android.com/guide/components/intents-filters#DeclareMutabilityPendingIntent
+        if(Build.VERSION.SDK_INT >= 23) {
+            intentflags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+        }
+
+        return PendingIntent.getService(mContext, requestCode, actionIntent, intentflags);
     }
 }
