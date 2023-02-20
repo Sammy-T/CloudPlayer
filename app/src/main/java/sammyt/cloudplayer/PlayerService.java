@@ -53,6 +53,9 @@ public class PlayerService extends Service {
 
     private static final String LOG_TAG = PlayerService.class.getSimpleName();
 
+    private static final String CHANNEL_ID = "CloudPlayer";
+    private static final int NOTIFICATION_ID = 111;
+
     private static final String PLAYER_ACTION_EXTRA = "EXTRA_PLAYER_ACTION";
     private static final int PLAYER_ACTION_PLAY_PAUSE = 0;
     private static final int PLAYER_ACTION_NEXT = 1;
@@ -574,8 +577,7 @@ public class PlayerService extends Service {
                     return;
                 }
 
-                NotificationCompat.Builder notifyBuilder = new NotificationCompat
-                        .Builder(mContext, "CloudPlayer");
+                NotificationCompat.Builder notifyBuilder = new NotificationCompat.Builder(mContext, CHANNEL_ID);
                 notifyBuilder.setSmallIcon(R.drawable.ic_cloud_player)
                         .setContentTitle(trackTitle)
                         .setContentText(trackArtist)
@@ -620,10 +622,10 @@ public class PlayerService extends Service {
 
                 // Delivers the notification with as foreground or regular as appropriate
                 if(setForeground) {
-                    startForeground(111, notifyBuilder.build());
+                    startForeground(NOTIFICATION_ID, notifyBuilder.build());
                 }else{
                     stopForeground(false);
-                    notificationManager.notify(111, notifyBuilder.build());
+                    notificationManager.notify(NOTIFICATION_ID, notifyBuilder.build());
                 }
             }
         });
@@ -635,7 +637,7 @@ public class PlayerService extends Service {
         String channelDescription = "CloudPlayer basic media player and control";
         int importance = NotificationManager.IMPORTANCE_LOW;
 
-        NotificationChannel channel = new NotificationChannel("CloudPlayer", channelName, importance);
+        NotificationChannel channel = new NotificationChannel(CHANNEL_ID, channelName, importance);
         channel.setDescription(channelDescription);
         channel.enableVibration(true);
         channel.enableLights(true);
