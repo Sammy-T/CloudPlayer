@@ -22,18 +22,18 @@ import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.OptIn;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.Player;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.analytics.AnalyticsListener;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.exoplayer.source.MediaSource;
 
-import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.analytics.AnalyticsListener;
-import com.google.android.exoplayer2.source.DefaultMediaSourceFactory;
-import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.MediaSourceFactory;
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
@@ -95,6 +95,7 @@ public class PlayerService extends Service {
         }
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     @Override
     public void onCreate() {
         super.onCreate();
@@ -181,17 +182,18 @@ public class PlayerService extends Service {
     public void initPlayer(){
         if(mPlayer == null) {
             AnalyticsListener analyticsListener = new AnalyticsListener() {
+                @OptIn(markerClass = UnstableApi.class)
                 @Override
                 public void onPlaybackStateChanged(@NonNull EventTime eventTime, int state) {
                     // Loads the next track when current track has ended
-                    if(state == Player.STATE_ENDED){
-                        if(mRepeat){
+                    if(state == Player.STATE_ENDED) {
+                        if(mRepeat) {
                             loadTrack(mCurrentTrack); // Repeat the current track
-                        }else if(mShuffle && mCurrentTrack == mTracks.size() - 1){
+                        } else if(mShuffle && mCurrentTrack == mTracks.size() - 1) {
                             // Restart from the first position and shuffle the list again
                             mCurrentTrack = 0;
                             toggleShuffle(true);
-                        }else{
+                        } else {
                             adjustTrack(AdjustTrack.next); // Play the next track
                         }
                     }
@@ -354,6 +356,7 @@ public class PlayerService extends Service {
         return mShuffle;
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     public int getSessionId(){
         return mPlayer.getAudioSessionId();
     }
@@ -380,6 +383,7 @@ public class PlayerService extends Service {
 
                 mHandler.post(new Runnable() {
                     @SuppressLint("RestrictedApi")
+                    @OptIn(markerClass = UnstableApi.class)
                     @Override
                     public void run() {
 //                        String trackInfo = mTracks.get(mCurrentTrack).getUser().getUsername() + " - "
