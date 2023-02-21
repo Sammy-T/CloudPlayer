@@ -9,6 +9,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -43,6 +44,10 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import me.bogerchan.niervisualizer.NierVisualizerManager;
 import me.bogerchan.niervisualizer.renderer.IRenderer;
@@ -57,8 +62,6 @@ import sammyt.cloudplayer.data.PlayerSessionId;
 public class PlayerFragment extends Fragment {
 
     private static final String LOG_TAG = PlayerFragment.class.getSimpleName();
-
-    private static final int PERMISSION_REQ_REC_AUDIO = 819;
     
     private boolean mIsDragging = false;
     
@@ -69,23 +72,22 @@ public class PlayerFragment extends Fragment {
     private SeekBar mSeekBar;
     private TextView mTimeView;
     private ImageButton mShuffle;
-    private ImageButton mPrevious;
     private ImageButton mPlay;
-    private ImageButton mNext;
     private ImageButton mRepeat;
-    private ImageButton mQueue;
-    private ImageButton mBack;
 
-    private SimpleDateFormat mDateFormat = new SimpleDateFormat("mm:ss", Locale.getDefault());
+    private final SimpleDateFormat mDateFormat = new SimpleDateFormat("mm:ss", Locale.getDefault());
 
     private ObjectAnimator mProgressAnim;
     private ObjectAnimator mSecProgressAnim;
 
     private NierVisualizerManager mVisualizerManager;
 
-    private SessionToken sessionToken;
     private ListenableFuture<MediaController> controllerFuture;
     private MediaController mediaController;
+
+    private ScheduledExecutorService executor;
+    private ScheduledFuture<?> future;
+    private final Handler handler = new Handler();
 
     private static final String QUEUE_FRAGMENT = "QUEUE_FRAGMENT";
 
@@ -98,6 +100,11 @@ public class PlayerFragment extends Fragment {
         // Inflate the layout for this fragment
         View root = inflater.inflate(R.layout.fragment_player, container, false);
 
+        ImageButton previous;
+        ImageButton next;
+        ImageButton queue;
+        ImageButton back;
+
         mSurface = root.findViewById(R.id.surface);
         mImageView = root.findViewById(R.id.track_image_2);
         mTitleView = root.findViewById(R.id.track_title);
@@ -105,12 +112,12 @@ public class PlayerFragment extends Fragment {
         mSeekBar = root.findViewById(R.id.track_seekbar);
         mTimeView = root.findViewById(R.id.track_time);
         mShuffle = root.findViewById(R.id.shuffle);
-        mPrevious = root.findViewById(R.id.previous);
+        previous = root.findViewById(R.id.previous);
         mPlay = root.findViewById(R.id.play);
-        mNext = root.findViewById(R.id.next);
+        next = root.findViewById(R.id.next);
         mRepeat = root.findViewById(R.id.repeat);
-        mQueue = root.findViewById(R.id.queue_button);
-        mBack = root.findViewById(R.id.player_back);
+        queue = root.findViewById(R.id.queue_button);
+        back = root.findViewById(R.id.player_back);
 
         // Layer the surface view on top and set it to translucent
         mSurface.setZOrderOnTop(true);
@@ -137,6 +144,10 @@ public class PlayerFragment extends Fragment {
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if(mediaController != null && fromUser) {
+                    long progressPos = (long) (progress / 1000f * mediaController.getDuration());
+                    mediaController.seekTo(progressPos);
+                }
             }
 
             @Override
@@ -165,7 +176,7 @@ public class PlayerFragment extends Fragment {
             }
         });
 
-        mPrevious.setOnClickListener(new View.OnClickListener() {
+        previous.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(mediaController == null) {
@@ -176,7 +187,7 @@ public class PlayerFragment extends Fragment {
             }
         });
 
-        mNext.setOnClickListener(new View.OnClickListener() {
+        next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(mediaController == null) {
@@ -215,7 +226,7 @@ public class PlayerFragment extends Fragment {
             }
         });
 
-        mQueue.setOnClickListener(new View.OnClickListener() {
+        queue.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 getParentFragmentManager().beginTransaction()
@@ -225,7 +236,7 @@ public class PlayerFragment extends Fragment {
             }
         });
 
-        mBack.setOnClickListener(new View.OnClickListener() {
+        back.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 requireActivity().onBackPressed();
@@ -258,6 +269,8 @@ public class PlayerFragment extends Fragment {
             });
             snackbar.show();
         }
+
+        executor = Executors.newSingleThreadScheduledExecutor();
     }
 
     @Override
@@ -266,6 +279,8 @@ public class PlayerFragment extends Fragment {
             mVisualizerManager.stop();
             mVisualizerManager.release();
         }
+
+        executor.shutdown();
 
         super.onPause();
     }
@@ -383,42 +398,7 @@ public class PlayerFragment extends Fragment {
         }
     }
 
-    private void initController() {
-        sessionToken = new SessionToken(requireContext(),
-                new ComponentName(requireContext(), PlayerService.class));
-
-        controllerFuture = new MediaController.Builder(requireContext(), sessionToken).buildAsync();
-        controllerFuture.addListener(() -> {
-            try {
-                setController(controllerFuture.get());
-                initVisualizer(PlayerSessionId.getInstance().getSessionId());
-                updateUI();
-            } catch(ExecutionException | InterruptedException e) {
-                Log.e(LOG_TAG, "Unable to get mediaController", e);
-            }
-        }, ContextCompat.getMainExecutor(requireContext()));
-    }
-
-    private void setController(MediaController controller) {
-        mediaController = controller;
-        mediaController.addListener(new Player.Listener() {
-            @Override
-            public void onEvents(@NonNull Player player, @NonNull Player.Events events) {
-                Player.Listener.super.onEvents(player, events);
-                updateUI();
-            }
-
-            @OptIn(markerClass = UnstableApi.class)
-            @Override
-            public void onAudioSessionIdChanged(int audioSessionId) {
-                Player.Listener.super.onAudioSessionIdChanged(audioSessionId);
-                initVisualizer(audioSessionId);
-            }
-        });
-    }
-
-    // Player Service Interface method
-    public void onPlayback(float duration, float currentPos, float bufferPos){
+    public void updateProgress(float duration, float currentPos, float bufferPos){
         int progress = (int) ((currentPos / duration) * 1000);
         int bufferProgress = (int) ((bufferPos / duration) * 1000);
         int limit = (int) ((5f / 100f) * 1000);
@@ -445,6 +425,74 @@ public class PlayerFragment extends Fragment {
         String timeText = currentText + " / " + durationText;
         mTimeView.setText(timeText);
     }
+
+    private void initController() {
+        SessionToken sessionToken = new SessionToken(requireContext(),
+                new ComponentName(requireContext(), PlayerService.class));
+
+        controllerFuture = new MediaController.Builder(requireContext(), sessionToken).buildAsync();
+        controllerFuture.addListener(() -> {
+            try {
+                setController(controllerFuture.get());
+                initVisualizer(PlayerSessionId.getInstance().getSessionId());
+                updateUI();
+            } catch(ExecutionException | InterruptedException e) {
+                Log.e(LOG_TAG, "Unable to get mediaController", e);
+            }
+        }, ContextCompat.getMainExecutor(requireContext()));
+    }
+
+    private void setController(MediaController controller) {
+        mediaController = controller;
+
+        if(mediaController.isPlaying()) {
+            future = executor.scheduleAtFixedRate(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
+        }
+
+        mediaController.addListener(new Player.Listener() {
+            @Override
+            public void onEvents(@NonNull Player player, @NonNull Player.Events events) {
+                Player.Listener.super.onEvents(player, events);
+                updateUI();
+            }
+
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                Player.Listener.super.onIsPlayingChanged(isPlaying);
+
+                if(!isPlaying && future != null) {
+                    future.cancel(true);
+                } else if(isPlaying) {
+                    future = executor.scheduleAtFixedRate(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
+                }
+            }
+
+            @OptIn(markerClass = UnstableApi.class)
+            @Override
+            public void onAudioSessionIdChanged(int audioSessionId) {
+                Player.Listener.super.onAudioSessionIdChanged(audioSessionId);
+                initVisualizer(audioSessionId);
+            }
+        });
+    }
+
+    /**
+     * This Runnable is a helper to make sure we're updating the UI from the correct thread
+     * by using the Handler as the go-between
+     */
+    private final Runnable progressHelperRunnable = new Runnable() {
+        @Override
+        public void run() {
+            handler.post(progressRunnable);
+        }
+    };
+
+    private final Runnable progressRunnable = () -> {
+        if(mediaController != null) {
+            updateProgress(mediaController.getDuration(), mediaController.getCurrentPosition(),
+                    mediaController.getBufferedPosition());
+        }
+    };
 
     // Helper function to check permissions
     private boolean checkPermission(String permission){

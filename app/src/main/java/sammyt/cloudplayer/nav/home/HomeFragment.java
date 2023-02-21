@@ -51,7 +51,7 @@ public class HomeFragment extends Fragment {
 
     private TrackAdapter mAdapter;
 
-    private ArrayList<JSONObject> mTracks = new ArrayList<>();
+    private final ArrayList<JSONObject> mTracks = new ArrayList<>();
 
     private enum VisibleView{
         loading, loaded, error

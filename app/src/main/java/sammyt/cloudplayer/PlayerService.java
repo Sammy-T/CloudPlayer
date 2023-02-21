@@ -30,9 +30,6 @@ public class PlayerService extends MediaSessionService implements MediaSession.C
 
     private static final String LOG_TAG = PlayerService.class.getSimpleName();
 
-    private static final String CHANNEL_ID = "CloudPlayer";
-    private static final int NOTIFICATION_ID = 111;
-
     private final Context context = PlayerService.this;
 
     private ExoPlayer player;

@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
@@ -37,6 +38,10 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.player.PlayerActivity;
@@ -47,10 +52,7 @@ public class NavActivity extends AppCompatActivity {
 
     public String token;
 
-    private SelectedTrackModel selectedTrackModel;
-
     private ImageButton mPlay;
-    private RelativeLayout mInfoArea;
     private TextView mTitle;
     private TextView mArtist;
     private ProgressBar mProgress;
@@ -59,6 +61,10 @@ public class NavActivity extends AppCompatActivity {
 
     private ListenableFuture<MediaController> controllerFuture;
     private MediaController mediaController;
+
+    private ScheduledExecutorService executor;
+    private ScheduledFuture<?> future;
+    private final Handler handler = new Handler();
 
     private onBackListener mBackListener;
 
@@ -83,10 +89,12 @@ public class NavActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        RelativeLayout infoArea;
+
         setContentView(R.layout.activity_nav);
         BottomNavigationView navView = findViewById(R.id.nav_view);
         mPlay = findViewById(R.id.mini_play_pause);
-        mInfoArea = findViewById(R.id.mini_info_area);
+        infoArea = findViewById(R.id.mini_info_area);
         mTitle = findViewById(R.id.mini_title);
         mArtist = findViewById(R.id.mini_artist);
         mProgress = findViewById(R.id.mini_progress);
@@ -111,7 +119,7 @@ public class NavActivity extends AppCompatActivity {
         mProgressAnim.setDuration(1000);
         mProgressAnim.setInterpolator(new LinearInterpolator());
 
-        selectedTrackModel = new ViewModelProvider(this).get(SelectedTrackModel.class);
+        SelectedTrackModel selectedTrackModel = new ViewModelProvider(this).get(SelectedTrackModel.class);
 
         // Observe the shared View Model to update the service's track list & load the selected track
         selectedTrackModel.getSelectedTrack().observe(this, new Observer<SelectedTrackModel.SelectedTrack>() {
@@ -152,7 +160,7 @@ public class NavActivity extends AppCompatActivity {
             }
         });
 
-        mInfoArea.setOnClickListener(new View.OnClickListener() {
+        infoArea.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(NavActivity.this, PlayerActivity.class);
@@ -165,6 +173,18 @@ public class NavActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         initController();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        executor = Executors.newSingleThreadScheduledExecutor();
+    }
+
+    @Override
+    protected void onPause() {
+        executor.shutdown();
+        super.onPause();
     }
 
     @Override
@@ -193,6 +213,22 @@ public class NavActivity extends AppCompatActivity {
         mTitle.setText(mediaItem.mediaMetadata.title);
     }
 
+    public void updateProgress(float duration, float currentPos, float bufferPos){
+        int progress = (int) ((currentPos / duration) * 1000);
+        int limit = (int) ((5f / 100f) * 1000);
+
+        // Set the progress without animating if there's a large change in progress
+        // (i.e. returning to the activity)
+        if(Math.abs(progress - mProgress.getProgress()) >= limit){
+            mProgress.setProgress(progress);
+            return;
+        }
+
+        // Animate the change in progress
+        mProgressAnim.setIntValues(progress);
+        mProgressAnim.start();
+    }
+
     private void initController() {
         SessionToken sessionToken = new SessionToken(this,
                 new ComponentName(this, PlayerService.class));
@@ -213,7 +249,14 @@ public class NavActivity extends AppCompatActivity {
             @Override
             public void onIsPlayingChanged(boolean isPlaying) {
                 Player.Listener.super.onIsPlayingChanged(isPlaying);
+
                 updateUI();
+
+                if(!isPlaying && future != null) {
+                    future.cancel(true);
+                } else if(isPlaying) {
+                    future = executor.scheduleAtFixedRate(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
+                }
             }
 
             @Override
@@ -253,6 +296,24 @@ public class NavActivity extends AppCompatActivity {
 
         return mediaItem;
     }
+
+    /**
+     * This Runnable is a helper to make sure we're updating the UI from the correct thread
+     * by using the Handler as the go-between
+     */
+    private final Runnable progressHelperRunnable = new Runnable() {
+        @Override
+        public void run() {
+            handler.post(progressRunnable);
+        }
+    };
+
+    private final Runnable progressRunnable = () -> {
+        if(mediaController != null) {
+            updateProgress(mediaController.getDuration(), mediaController.getCurrentPosition(),
+                    mediaController.getBufferedPosition());
+        }
+    };
 
     public void redirectToLogin(boolean refreshToken) {
         Intent intent = new Intent(this, LoginActivity.class);
