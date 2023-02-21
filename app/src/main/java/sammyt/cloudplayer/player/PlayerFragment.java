@@ -11,15 +11,23 @@ import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.media.AudioManager;
 import android.os.Bundle;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.OptIn;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.widget.ImageViewCompat;
 import androidx.fragment.app.Fragment;
+import androidx.media.AudioManagerCompat;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.Player;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.session.MediaController;
+import androidx.media3.session.SessionToken;
 
 import android.os.IBinder;
 import android.text.TextUtils;
@@ -35,6 +43,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -44,24 +53,23 @@ import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 
 import me.bogerchan.niervisualizer.NierVisualizerManager;
 import me.bogerchan.niervisualizer.renderer.IRenderer;
 import me.bogerchan.niervisualizer.renderer.columnar.ColumnarType1Renderer;
 import sammyt.cloudplayer.PlayerService;
 import sammyt.cloudplayer.R;
+import sammyt.cloudplayer.data.PlayerSessionId;
 
 /**
  * A simple {@link Fragment} subclass.
  */
-public class PlayerFragment extends Fragment implements PlayerService.PlayerServiceListener {
+public class PlayerFragment extends Fragment {
 
     private static final String LOG_TAG = PlayerFragment.class.getSimpleName();
 
     private static final int PERMISSION_REQ_REC_AUDIO = 819;
-    
-    private PlayerService mService;
-    private boolean mBound = false;
     
     private boolean mIsDragging = false;
     
@@ -85,6 +93,10 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
     private ObjectAnimator mSecProgressAnim;
 
     private NierVisualizerManager mVisualizerManager;
+
+    private SessionToken sessionToken;
+    private ListenableFuture<MediaController> controllerFuture;
+    private MediaController mediaController;
 
     private static final String QUEUE_FRAGMENT = "QUEUE_FRAGMENT";
 
@@ -136,9 +148,6 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if(mBound && fromUser){
-                    mService.seekTo(progress);
-                }
             }
 
             @Override
@@ -155,9 +164,14 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         mPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mBound){
-                    mService.togglePlay(!mService.isPlaying());
-                    updateUI();
+                if(mediaController == null) {
+                    return;
+                }
+
+                if(mediaController.isPlaying()) {
+                    mediaController.pause();
+                } else {
+                    mediaController.play();
                 }
             }
         });
@@ -165,38 +179,24 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         mPrevious.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mBound){
-                    mService.adjustTrack(PlayerService.AdjustTrack.previous);
-                }
             }
         });
 
         mNext.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mBound){
-                    mService.adjustTrack(PlayerService.AdjustTrack.next);
-                }
             }
         });
 
         mShuffle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mBound){
-                    mService.toggleShuffle(!mService.getShuffle());
-                    updateUI();
-                }
             }
         });
 
         mRepeat.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mBound){
-                    mService.toggleRepeat(!mService.getRepeat());
-                    updateUI();
-                }
             }
         });
 
@@ -221,6 +221,12 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+        initController();
+    }
+
+    @Override
     public void onResume(){
         super.onResume();
 
@@ -237,24 +243,10 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
             });
             snackbar.show();
         }
-
-        if(!mBound){
-            Log.d(LOG_TAG, "Bind Service");
-
-            Intent intent = new Intent(getContext(), PlayerService.class);
-            requireContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-        }
     }
 
     @Override
     public void onPause(){
-        if(mBound){
-            Log.d(LOG_TAG, "Unbind Service");
-
-            requireContext().unbindService(mConnection);
-            mBound = false;
-        }
-
         if(mVisualizerManager != null) {
             mVisualizerManager.stop();
             mVisualizerManager.release();
@@ -263,58 +255,62 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         super.onPause();
     }
 
-    private void updateUI(){
+    @Override
+    public void onStop() {
+        MediaController.releaseFuture(controllerFuture);
+        super.onStop();
+    }
+
+    private void initVisualizer(int sessionId){
+        if(sessionId <= 0){
+            Log.w(LOG_TAG, "Invalid Session ID: " + sessionId);
+            return;
+        }
+
+        if(mVisualizerManager != null){
+            mVisualizerManager.stop();
+            mVisualizerManager.release();
+        }
+
+        mVisualizerManager = new NierVisualizerManager();
+
+        int state = mVisualizerManager.init(sessionId);
+        if (NierVisualizerManager.SUCCESS != state){
+            Log.e(LOG_TAG, "Error initializing visualizer manager");
+            return;
+        }
+        Log.d(LOG_TAG, "state: " + state);
+
+        Paint visPaint = new Paint();
+        visPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorAccent));
+        visPaint.setAlpha(150);
+
+        mVisualizerManager.start(mSurface, new IRenderer[]{new ColumnarType1Renderer(visPaint)});
+    }
+
+    private void updateUI() {
         // Update the play button
         int playOrPause = R.drawable.ic_play_black_36dp;
 
-        if(mService.isPlaying()){
+        if(mediaController.isPlaying()){
             playOrPause = R.drawable.ic_pause_black_36dp;
         }
 
         mPlay.setImageResource(playOrPause);
 
-        // Update the shuffle & repeat state
-        if(getContext() != null) {
-            int shuffleColor = ContextCompat.getColor(getContext(), R.color.colorPrimaryTrans50);
-            int repeatColor = ContextCompat.getColor(getContext(), R.color.colorPrimaryTrans50);
-
-            if (mService.getShuffle()) {
-                shuffleColor = ContextCompat.getColor(getContext(), R.color.colorPrimary);
-            }
-
-            if (mService.getRepeat()) {
-                repeatColor = ContextCompat.getColor(getContext(), R.color.colorPrimary);
-            }
-
-            ImageViewCompat.setImageTintList(mShuffle, ColorStateList.valueOf(shuffleColor));
-            ImageViewCompat.setImageTintList(mRepeat, ColorStateList.valueOf(repeatColor));
-        }
-
-        JSONObject track = mService.getCurrentTrack();
-        if(track == null){
+        MediaItem mediaItem = mediaController.getCurrentMediaItem();
+        if(mediaItem == null) {
             return;
         }
 
-        // Update the track info
-        String title;
-        String artist;
-
-        try{
-            title = track.getString("title");
-            artist = track.getJSONObject("user").getString("username");
-        }catch(JSONException e){
-            Log.e(LOG_TAG, "Unable to get track info.", e);
-            return;
-        }
-
-        mTitleView.setText(title);
-        mArtistView.setText(artist);
+        mTitleView.setText(mediaItem.mediaMetadata.title);
+        mArtistView.setText(mediaItem.mediaMetadata.artist);
 
         // Update the track image
         int width = mImageView.getWidth();
         int height = mImageView.getHeight();
 
-        String rawUrl = track.optString("artwork_url");
+        String rawUrl = mediaItem.mediaMetadata.extras.getString("artwork_url");
 
         if(rawUrl != null && !rawUrl.equals("")){
             final String trackArtUrl = rawUrl.replace("large", "t500x500");
@@ -357,36 +353,38 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         }
     }
 
-    private void initVisualizer(int sessionId){
-        if(sessionId <= 0){
-            Log.w(LOG_TAG, "Invalid Session ID: " + sessionId);
-            return;
-        }
+    private void initController() {
+        sessionToken = new SessionToken(requireContext(),
+                new ComponentName(requireContext(), PlayerService.class));
 
-        if(mVisualizerManager != null){
-            mVisualizerManager.stop();
-            mVisualizerManager.release();
-        }
-
-        mVisualizerManager = new NierVisualizerManager();
-
-        int state = mVisualizerManager.init(sessionId);
-        if (NierVisualizerManager.SUCCESS != state){
-            Log.e(LOG_TAG, "Error initializing visualizer manager");
-            return;
-        }
-        Log.d(LOG_TAG, "state: " + state);
-
-        Paint visPaint = new Paint();
-        visPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorAccent));
-        visPaint.setAlpha(150);
-
-        mVisualizerManager.start(mSurface, new IRenderer[]{new ColumnarType1Renderer(visPaint)});
+        controllerFuture = new MediaController.Builder(requireContext(), sessionToken).buildAsync();
+        controllerFuture.addListener(() -> {
+            try {
+                setController(controllerFuture.get());
+                initVisualizer(PlayerSessionId.getInstance().getSessionId());
+                updateUI();
+            } catch(ExecutionException | InterruptedException e) {
+                Log.e(LOG_TAG, "Unable to get mediaController", e);
+            }
+        }, ContextCompat.getMainExecutor(requireContext()));
     }
 
-    // Player Service Interface method
-    public void onTrackLoaded(int trackPos, JSONObject track){
-        updateUI();
+    private void setController(MediaController controller) {
+        mediaController = controller;
+        mediaController.addListener(new Player.Listener() {
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                Player.Listener.super.onIsPlayingChanged(isPlaying);
+                updateUI();
+            }
+
+            @OptIn(markerClass = UnstableApi.class)
+            @Override
+            public void onAudioSessionIdChanged(int audioSessionId) {
+                Player.Listener.super.onAudioSessionIdChanged(audioSessionId);
+                initVisualizer(audioSessionId);
+            }
+        });
     }
 
     // Player Service Interface method
@@ -418,47 +416,6 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
         mTimeView.setText(timeText);
     }
 
-    // Player Service Connection
-    private final ServiceConnection mConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.d(LOG_TAG, "Service Connected");
-
-            // We've bound to the service, cast the IBinder to our defined Binder
-            // and get our Service instance
-            PlayerService.PlayerBinder binder = (PlayerService.PlayerBinder) service;
-            mService = binder.getService();
-            mBound = true;
-
-            // Set up the interface so we can receive call backs
-            // then initialize the player
-            mService.setPlayerServiceListener(PlayerFragment.this);
-            mService.initPlayer();
-
-            if(checkPermission(Manifest.permission.RECORD_AUDIO)) {
-                initVisualizer(mService.getSessionId());
-            }
-
-            // Make sure the view is drawn before updating the UI
-            // so we have a valid width and height to work with
-            mImageView.post(new Runnable() {
-                @Override
-                public void run() {
-                    if(mBound){
-                        updateUI();
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.d(LOG_TAG, "Service Disconnected");
-
-            mBound = false;
-        }
-    };
-
     // Helper function to check permissions
     private boolean checkPermission(String permission){
         if(ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED){
@@ -473,9 +430,7 @@ public class PlayerFragment extends Fragment implements PlayerService.PlayerServ
                 if(isGranted) {
                     Log.d(LOG_TAG, "Record Permission Granted");
 
-                    if(mBound){
-                        initVisualizer(mService.getSessionId());
-                    }
+                    initVisualizer(PlayerSessionId.getInstance().getSessionId());
                 }
             });
 }

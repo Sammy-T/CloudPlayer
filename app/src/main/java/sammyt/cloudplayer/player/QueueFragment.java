@@ -24,7 +24,7 @@ import sammyt.cloudplayer.R;
 /**
  * A simple {@link Fragment} subclass.
  */
-public class QueueFragment extends Fragment implements PlayerService.PlayerServiceListener {
+public class QueueFragment extends Fragment {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
@@ -66,24 +66,10 @@ public class QueueFragment extends Fragment implements PlayerService.PlayerServi
     @Override
     public void onResume(){
         super.onResume();
-
-        if(!mBound){
-            Log.d(LOG_TAG, "Bind Service");
-
-            Intent intent = new Intent(getContext(), PlayerService.class);
-            getContext().bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-        }
     }
 
     @Override
     public void onPause(){
-        if(mBound){
-            Log.d(LOG_TAG, "Unbind Service");
-
-            getContext().unbindService(mConnection);
-            mBound = false;
-        }
-
         super.onPause();
     }
 
@@ -92,58 +78,19 @@ public class QueueFragment extends Fragment implements PlayerService.PlayerServi
         public void onQueueClick(int position, JSONObject track) {
             Log.d(LOG_TAG, "Queue click - " + position + " " + track);
 
-            if(mBound) {
-                mService.loadTrack(position);
-            }
+//            if(mBound) {
+//                mService.loadTrack(position);
+//            }
         }
 
         @Override
         public void onQueueRemove(int position, JSONObject track) {
             Log.d(LOG_TAG, "Queue Remove click - " + position + " " + track);
 
-            if(mBound){
-                mService.removeTrackFromList(position);
-                mAdapter.updateTracks(mService.getTrackList());
-            }
-        }
-    };
-
-    // Player Service Interface method
-    public void onTrackLoaded(int trackPos, JSONObject track){
-        Log.d(LOG_TAG, "Track loaded: " + trackPos + " " + track);
-
-        mAdapter.setSelectedTrack(track);
-    }
-
-    // Player Service Interface method
-    public void onPlayback(float duration, float currentPos, float bufferPos){}
-
-    // Player Service Interface method
-    public void onSessionId(int sessionId){}
-
-    // Player Service Connection
-    private ServiceConnection mConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.d(LOG_TAG, "Service Connected");
-
-            // We've bound to the service, cast the IBinder to our defined Binder
-            // and get our Service instance
-            PlayerService.PlayerBinder binder = (PlayerService.PlayerBinder) service;
-            mService = binder.getService();
-            mBound = true;
-
-            mService.setPlayerServiceListener(QueueFragment.this);
-
-            mAdapter.updateTracks(mService.getTrackList());
-            mAdapter.setSelectedTrack(mService.getCurrentTrack());
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.d(LOG_TAG, "Service Disconnected");
-
-            mBound = false;
+//            if(mBound){
+//                mService.removeTrackFromList(position);
+//                mAdapter.updateTracks(mService.getTrackList());
+//            }
         }
     };
 }
