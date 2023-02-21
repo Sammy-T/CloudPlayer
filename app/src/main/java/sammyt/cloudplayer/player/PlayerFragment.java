@@ -179,24 +179,50 @@ public class PlayerFragment extends Fragment {
         mPrevious.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if(mediaController == null) {
+                    return;
+                }
+
+                mediaController.seekToPreviousMediaItem();
             }
         });
 
         mNext.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if(mediaController == null) {
+                    return;
+                }
+
+                mediaController.seekToNextMediaItem();
             }
         });
 
         mShuffle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if(mediaController == null) {
+                    return;
+                }
+
+                mediaController.setShuffleModeEnabled(!mediaController.getShuffleModeEnabled());
             }
         });
 
         mRepeat.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if(mediaController == null) {
+                    return;
+                }
+
+                int repeatMode = Player.REPEAT_MODE_OFF;
+
+                if(mediaController.getRepeatMode() == Player.REPEAT_MODE_OFF) {
+                    repeatMode = Player.REPEAT_MODE_ONE;
+                }
+
+                mediaController.setRepeatMode(repeatMode);
             }
         });
 
@@ -298,6 +324,21 @@ public class PlayerFragment extends Fragment {
 
         mPlay.setImageResource(playOrPause);
 
+        // Update the shuffle & repeat state
+        int shuffleColor = ContextCompat.getColor(requireContext(), R.color.colorPrimaryTrans50);
+        int repeatColor = ContextCompat.getColor(requireContext(), R.color.colorPrimaryTrans50);
+
+        if(mediaController.getShuffleModeEnabled()) {
+            shuffleColor = ContextCompat.getColor(requireContext(), R.color.colorPrimary);
+        }
+
+        if(mediaController.getRepeatMode() > Player.REPEAT_MODE_OFF) {
+            repeatColor = ContextCompat.getColor(requireContext(), R.color.colorPrimary);
+        }
+
+        ImageViewCompat.setImageTintList(mShuffle, ColorStateList.valueOf(shuffleColor));
+        ImageViewCompat.setImageTintList(mRepeat, ColorStateList.valueOf(repeatColor));
+
         MediaItem mediaItem = mediaController.getCurrentMediaItem();
         if(mediaItem == null) {
             return;
@@ -373,8 +414,8 @@ public class PlayerFragment extends Fragment {
         mediaController = controller;
         mediaController.addListener(new Player.Listener() {
             @Override
-            public void onIsPlayingChanged(boolean isPlaying) {
-                Player.Listener.super.onIsPlayingChanged(isPlaying);
+            public void onEvents(@NonNull Player player, @NonNull Player.Events events) {
+                Player.Listener.super.onEvents(player, events);
                 updateUI();
             }
 

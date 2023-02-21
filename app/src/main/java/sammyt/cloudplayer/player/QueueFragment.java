@@ -28,9 +28,6 @@ public class QueueFragment extends Fragment {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
-    private PlayerService mService;
-    private boolean mBound = false;
-
     private RecyclerView mQueueRecycler;
     private QueueAdapter mAdapter;
 

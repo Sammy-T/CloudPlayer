@@ -39,6 +39,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import sammyt.cloudplayer.nav.SelectedTrackModel;
@@ -125,34 +127,18 @@ public class NavActivity extends AppCompatActivity {
                     return; // Prevent an endless loop if this was triggered by this activity
                 }
 
-                try {
-                    JSONObject track = selectedTrack.getTrack();
+                List<MediaItem> mediaItems = new ArrayList<>();
 
-                    Bundle bundle = new Bundle();
-                    bundle.putString("artwork_url", track.getString("artwork_url"));
-
-                    MediaItem.RequestMetadata requestMetadata = new MediaItem.RequestMetadata.Builder()
-                            .setMediaUri(Uri.parse(track.getString("stream_url")))
-                            .build();
-
-                    MediaMetadata mediaMetadata = new MediaMetadata.Builder()
-                            .setArtist(track.getJSONObject("user").getString("username"))
-                            .setTitle(track.getString("title"))
-                            .setArtworkUri(Uri.parse(track.getString("artwork_url")))
-                            .setExtras(bundle)
-                            .build();
-
-                    MediaItem mediaItem = new MediaItem.Builder()
-                            .setMediaId(track.getString("stream_url"))
-                            .setMediaMetadata(mediaMetadata)
-                            .setRequestMetadata(requestMetadata)
-                            .build();
-                    mediaController.setMediaItem(mediaItem);
-                    mediaController.prepare();
-                    mediaController.play();
-                } catch(JSONException e) {
-                    Log.e(LOG_TAG, "Unable to set MediaItem", e);
+                for(int i=0; i < selectedTrack.getTrackList().size(); i++) {
+                    JSONObject track = selectedTrack.getTrackList().get(i);
+                    MediaItem mediaItem = createMediaItem(track);
+                    mediaItems.add(mediaItem);
                 }
+
+                mediaController.setMediaItems(mediaItems, selectedTrack.getPos(), 0);
+
+                mediaController.prepare();
+                mediaController.play();
             }
         });
 
@@ -235,6 +221,36 @@ public class NavActivity extends AppCompatActivity {
                 updateUI();
             }
         });
+    }
+
+    private MediaItem createMediaItem(JSONObject track) {
+        MediaItem mediaItem = null;
+
+        try {
+            Bundle bundle = new Bundle();
+            bundle.putString("artwork_url", track.getString("artwork_url"));
+
+            MediaItem.RequestMetadata requestMetadata = new MediaItem.RequestMetadata.Builder()
+                    .setMediaUri(Uri.parse(track.getString("stream_url")))
+                    .build();
+
+            MediaMetadata mediaMetadata = new MediaMetadata.Builder()
+                    .setArtist(track.getJSONObject("user").getString("username"))
+                    .setTitle(track.getString("title"))
+                    .setArtworkUri(Uri.parse(track.getString("artwork_url")))
+                    .setExtras(bundle)
+                    .build();
+
+            mediaItem = new MediaItem.Builder()
+                    .setMediaId(track.getString("stream_url"))
+                    .setMediaMetadata(mediaMetadata)
+                    .setRequestMetadata(requestMetadata)
+                    .build();
+        } catch(JSONException e) {
+            Log.e(LOG_TAG, "Unable to create MediaItem", e);
+        }
+
+        return mediaItem;
     }
 
     public void redirectToLogin(boolean refreshToken) {
