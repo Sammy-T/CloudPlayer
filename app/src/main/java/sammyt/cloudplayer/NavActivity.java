@@ -220,6 +220,12 @@ public class NavActivity extends AppCompatActivity {
                 Player.Listener.super.onIsPlayingChanged(isPlaying);
                 updateUI();
             }
+
+            @Override
+            public void onMediaItemTransition(MediaItem mediaItem, int reason) {
+                Player.Listener.super.onMediaItemTransition(mediaItem, reason);
+                updateUI();
+            }
         });
     }
 
