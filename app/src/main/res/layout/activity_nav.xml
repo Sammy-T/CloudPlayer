@@ -20,13 +20,11 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal">
-            <ImageButton
-                android:id="@+id/mini_play_pause"
+            <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:padding="8dp"
-                android:background="?selectableItemBackground"
-                android:foreground="?selectableItemBackground"
+                android:padding="16dp"
+                android:visibility="invisible"
                 android:src="@drawable/ic_play_white_24dp" />
             <RelativeLayout
                 android:id="@+id/mini_info_area"
@@ -53,12 +51,13 @@
                     android:layout_centerHorizontal="true"
                     android:text="Artist" />
             </RelativeLayout>
-            <!-- TODO: Replace w/ a repeat button? -->
-            <ImageView
+            <ImageButton
+                android:id="@+id/mini_play_pause"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:padding="8dp"
-                android:visibility="invisible"
+                android:padding="16dp"
+                android:background="?selectableItemBackground"
+                android:foreground="?selectableItemBackground"
                 android:src="@drawable/ic_play_white_24dp" />
         </LinearLayout>
         <ProgressBar
