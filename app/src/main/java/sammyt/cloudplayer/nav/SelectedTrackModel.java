@@ -1,14 +1,20 @@
 package sammyt.cloudplayer.nav;
 
+import android.util.Log;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+import androidx.media3.common.MediaItem;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 
 public class SelectedTrackModel extends ViewModel {
+
+    private final String LOG_TAG = this.getClass().getSimpleName();
 
     private MutableLiveData<SelectedTrack> mSelectedTrack;
 
@@ -27,8 +33,41 @@ public class SelectedTrackModel extends ViewModel {
         setSelectedTrack(position, track, trackList, selectionSource);
     }
 
+    public void updateSelectedTrack(MediaItem mediaItem, String selectionSource) {
+        // Find the track with the matching attributes
+        ArrayList<JSONObject> trackList = mSelectedTrack.getValue().getTrackList();
+
+        int trackPos = findTrackPosFromMedia(mediaItem, trackList);
+
+        if(trackPos < 0) {
+            return;
+        }
+
+        JSONObject track = trackList.get(trackPos);
+
+        setSelectedTrack(trackPos, track, trackList, selectionSource);
+    }
+
     public LiveData<SelectedTrack> getSelectedTrack(){
         return mSelectedTrack;
+    }
+
+    private int findTrackPosFromMedia(MediaItem mediaItem, ArrayList<JSONObject> trackList) {
+        int found = -1;
+
+        try {
+            for(int i=0; i < trackList.size(); i++) {
+                String streamUrl = trackList.get(i).getString("stream_url");
+                if(mediaItem.mediaId.equals(streamUrl)) {
+                    found = i;
+                    break;
+                }
+            }
+        } catch(JSONException e) {
+            Log.e(LOG_TAG, "Unable to process JSONObject", e);
+        }
+
+        return found;
     }
 
     // This is a helper class so our observers only need to monitor one Live Data variable

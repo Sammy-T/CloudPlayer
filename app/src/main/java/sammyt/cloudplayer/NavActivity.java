@@ -16,6 +16,7 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.Observer;
@@ -49,6 +50,8 @@ import sammyt.cloudplayer.player.PlayerActivity;
 public class NavActivity extends AppCompatActivity {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
+
+    private SelectedTrackModel selectedTrackModel;
 
     public String token;
 
@@ -119,7 +122,7 @@ public class NavActivity extends AppCompatActivity {
         mProgressAnim.setDuration(1000);
         mProgressAnim.setInterpolator(new LinearInterpolator());
 
-        SelectedTrackModel selectedTrackModel = new ViewModelProvider(this).get(SelectedTrackModel.class);
+        selectedTrackModel = new ViewModelProvider(this).get(SelectedTrackModel.class);
 
         // Observe the shared View Model to update the service's track list & load the selected track
         selectedTrackModel.getSelectedTrack().observe(this, new Observer<SelectedTrackModel.SelectedTrack>() {
@@ -245,6 +248,15 @@ public class NavActivity extends AppCompatActivity {
 
     private void setController(MediaController controller) {
         mediaController = controller;
+
+        // Update the UI if there's already media playing. This keeps the UI in sync
+        // when navigating away from then back to this activity.
+        if(mediaController.isPlaying()) {
+            updateUI();
+            selectedTrackModel.updateSelectedTrack(mediaController.getCurrentMediaItem(), LOG_TAG);
+            future = executor.scheduleAtFixedRate(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
+        }
+
         mediaController.addListener(new Player.Listener() {
             @Override
             public void onIsPlayingChanged(boolean isPlaying) {
