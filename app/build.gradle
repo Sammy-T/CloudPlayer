@@ -45,6 +45,7 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui:2.5.3'
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
     implementation 'androidx.media3:media3-exoplayer:1.0.0-rc01'
+    implementation 'androidx.media3:media3-session:1.0.0-rc01'
     implementation 'androidx.multidex:multidex:2.0.1'
 
     testImplementation 'junit:junit:4.13.1'
