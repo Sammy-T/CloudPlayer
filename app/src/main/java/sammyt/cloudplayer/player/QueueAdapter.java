@@ -1,5 +1,6 @@
 package sammyt.cloudplayer.player;
 
+import android.media.browse.MediaBrowser;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,6 +11,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.media3.common.MediaItem;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.json.JSONException;
@@ -23,8 +25,8 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.ViewHolder> 
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
-    private ArrayList<JSONObject> mTracks = new ArrayList<>();
-    private JSONObject mSelectedTrack;
+    private ArrayList<MediaItem> mTracks = new ArrayList<>();
+    private MediaItem mSelectedTrack;
 
     private onQueueClickListener mListener;
 
@@ -45,15 +47,15 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.ViewHolder> 
         }
     }
 
-    public QueueAdapter(ArrayList<JSONObject> tracks){
+    public QueueAdapter(ArrayList<MediaItem> tracks){
         if(tracks != null){
             mTracks = tracks;
         }
     }
 
     public interface onQueueClickListener{
-        void onQueueClick(int position, JSONObject track);
-        void onQueueRemove(int position, JSONObject track);
+        void onQueueClick(int position, MediaItem track);
+        void onQueueRemove(int position, MediaItem track);
     }
 
     public void setOnQueueClickListener(onQueueClickListener l){
@@ -78,32 +80,20 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.ViewHolder> 
     // Replace contents of view (invoked by Layout Manager)
     @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, int position){
-        final JSONObject track = mTracks.get(position);
+        final MediaItem track = mTracks.get(position);
         String title;
         String artist;
 
-        try{
-            title = track.getString("title");
-            artist = track.getJSONObject("user").getString("username");
-        }catch(JSONException e){
-            Log.e(LOG_TAG, "Unable to get track info.", e);
-            return;
-        }
+        title = (String) track.mediaMetadata.title;
+        artist = (String) track.mediaMetadata.artist;
 
         holder.itemTitle.setText(title);
         holder.itemArtist.setText(artist);
 
-        long trackId = -1;
-        long selectedTrackId = -2;
+        String trackId = track.mediaId;
+        String selectedTrackId = mSelectedTrack.mediaId;
 
-        try{
-            trackId = track.getLong("id");
-            selectedTrackId = mSelectedTrack.getLong("id");
-        }catch(JSONException e){
-            Log.e(LOG_TAG, "Unable to retrieve track or selected track id", e);
-        }
-
-        if(mSelectedTrack != null && trackId == selectedTrackId){
+        if(trackId.equals(selectedTrackId)){
             holder.currentIcon.setVisibility(View.VISIBLE);
         }else{
             holder.currentIcon.setVisibility(View.INVISIBLE);
@@ -138,12 +128,12 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.ViewHolder> 
         return mTracks.size();
     }
 
-    public void updateTracks(ArrayList<JSONObject> tracks){
+    public void updateTracks(ArrayList<MediaItem> tracks){
         mTracks = tracks;
         notifyDataSetChanged();
     }
 
-    public void setSelectedTrack(JSONObject selectedTrack){
+    public void setSelectedTrack(MediaItem selectedTrack){
         mSelectedTrack = selectedTrack;
         notifyDataSetChanged();
     }

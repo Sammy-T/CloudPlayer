@@ -1,22 +1,25 @@
 package sammyt.cloudplayer.player;
 
 import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.media3.common.MediaItem;
+import androidx.media3.session.MediaController;
+import androidx.media3.session.SessionToken;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.json.JSONObject;
+import com.google.common.util.concurrent.ListenableFuture;
+
+import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 
 import sammyt.cloudplayer.PlayerService;
 import sammyt.cloudplayer.R;
@@ -30,6 +33,10 @@ public class QueueFragment extends Fragment {
 
     private RecyclerView mQueueRecycler;
     private QueueAdapter mAdapter;
+
+    private SessionToken sessionToken;
+    private ListenableFuture<MediaController> controllerFuture;
+    private MediaController mediaController;
 
     public QueueFragment() {
         // Required empty public constructor
@@ -61,18 +68,62 @@ public class QueueFragment extends Fragment {
     }
 
     @Override
-    public void onResume(){
-        super.onResume();
+    public void onStart() {
+        super.onStart();
+        initController();
     }
 
     @Override
-    public void onPause(){
-        super.onPause();
+    public void onStop() {
+        MediaController.releaseFuture(controllerFuture);
+        super.onStop();
+    }
+
+    private void initController() {
+        sessionToken = new SessionToken(requireContext(),
+                new ComponentName(requireContext(), PlayerService.class));
+
+        controllerFuture = new MediaController.Builder(requireContext(), sessionToken).buildAsync();
+        controllerFuture.addListener(() -> {
+            try {
+                setController(controllerFuture.get());
+            } catch(ExecutionException | InterruptedException e) {
+                Log.e(LOG_TAG, "Unable to get mediaController", e);
+            }
+        }, ContextCompat.getMainExecutor(requireContext()));
+    }
+
+    private void setController(MediaController controller) {
+        mediaController = controller;
+
+        ArrayList<MediaItem> mediaItems = new ArrayList<>();
+
+        for(int i=0; i < mediaController.getMediaItemCount(); i++) {
+            mediaItems.add(mediaController.getMediaItemAt(i));
+        }
+
+        mAdapter.updateTracks(mediaItems);
+        mAdapter.setSelectedTrack(mediaController.getCurrentMediaItem());
+
+//        mediaController.addListener(new Player.Listener() {
+//            @Override
+//            public void onEvents(@NonNull Player player, @NonNull Player.Events events) {
+//                Player.Listener.super.onEvents(player, events);
+//                updateUI();
+//            }
+//
+//            @OptIn(markerClass = UnstableApi.class)
+//            @Override
+//            public void onAudioSessionIdChanged(int audioSessionId) {
+//                Player.Listener.super.onAudioSessionIdChanged(audioSessionId);
+//                initVisualizer(audioSessionId);
+//            }
+//        });
     }
 
     private QueueAdapter.onQueueClickListener mQueueClickListener = new QueueAdapter.onQueueClickListener() {
         @Override
-        public void onQueueClick(int position, JSONObject track) {
+        public void onQueueClick(int position, MediaItem track) {
             Log.d(LOG_TAG, "Queue click - " + position + " " + track);
 
 //            if(mBound) {
@@ -81,7 +132,7 @@ public class QueueFragment extends Fragment {
         }
 
         @Override
-        public void onQueueRemove(int position, JSONObject track) {
+        public void onQueueRemove(int position, MediaItem track) {
             Log.d(LOG_TAG, "Queue Remove click - " + position + " " + track);
 
 //            if(mBound){

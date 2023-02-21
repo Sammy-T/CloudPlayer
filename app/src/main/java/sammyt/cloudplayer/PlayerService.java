@@ -2,29 +2,19 @@ package sammyt.cloudplayer;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.media3.common.AudioAttributes;
-import androidx.media3.common.Format;
 import androidx.media3.common.MediaItem;
-import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DefaultHttpDataSource;
-import androidx.media3.exoplayer.DecoderCounters;
-import androidx.media3.exoplayer.DecoderReuseEvaluation;
 import androidx.media3.exoplayer.ExoPlayer;
-import androidx.media3.exoplayer.analytics.AnalyticsCollector;
-import androidx.media3.exoplayer.analytics.AnalyticsListener;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.exoplayer.source.MediaSource;
-import androidx.media3.session.MediaController;
 import androidx.media3.session.MediaSession;
 import androidx.media3.session.MediaSessionService;
-import androidx.media3.session.SessionToken;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -34,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import sammyt.cloudplayer.data.CloudQueue;
 import sammyt.cloudplayer.data.PlayerSessionId;
 
 public class PlayerService extends MediaSessionService implements MediaSession.Callback {
@@ -43,11 +32,6 @@ public class PlayerService extends MediaSessionService implements MediaSession.C
 
     private static final String CHANNEL_ID = "CloudPlayer";
     private static final int NOTIFICATION_ID = 111;
-
-    private static final String PLAYER_ACTION_EXTRA = "EXTRA_PLAYER_ACTION";
-    private static final int PLAYER_ACTION_PLAY_PAUSE = 0;
-    private static final int PLAYER_ACTION_NEXT = 1;
-    private static final int PLAYER_ACTION_PREV = 2;
 
     private final Context context = PlayerService.this;
 
