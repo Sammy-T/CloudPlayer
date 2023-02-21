@@ -128,6 +128,11 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.ViewHolder> 
         return mTracks.size();
     }
 
+    public void removeTrack(int position) {
+        mTracks.remove(position);
+        notifyItemRemoved(position);
+    }
+
     public void updateTracks(ArrayList<MediaItem> tracks){
         mTracks = tracks;
         notifyDataSetChanged();

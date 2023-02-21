@@ -11,6 +11,7 @@ import android.widget.ImageButton;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -105,20 +106,13 @@ public class QueueFragment extends Fragment {
         mAdapter.updateTracks(mediaItems);
         mAdapter.setSelectedTrack(mediaController.getCurrentMediaItem());
 
-//        mediaController.addListener(new Player.Listener() {
-//            @Override
-//            public void onEvents(@NonNull Player player, @NonNull Player.Events events) {
-//                Player.Listener.super.onEvents(player, events);
-//                updateUI();
-//            }
-//
-//            @OptIn(markerClass = UnstableApi.class)
-//            @Override
-//            public void onAudioSessionIdChanged(int audioSessionId) {
-//                Player.Listener.super.onAudioSessionIdChanged(audioSessionId);
-//                initVisualizer(audioSessionId);
-//            }
-//        });
+        mediaController.addListener(new Player.Listener() {
+            @Override
+            public void onMediaItemTransition(MediaItem mediaItem, int reason) {
+                Player.Listener.super.onMediaItemTransition(mediaItem, reason);
+                mAdapter.setSelectedTrack(mediaController.getCurrentMediaItem());
+            }
+        });
     }
 
     private QueueAdapter.onQueueClickListener mQueueClickListener = new QueueAdapter.onQueueClickListener() {
@@ -126,19 +120,23 @@ public class QueueFragment extends Fragment {
         public void onQueueClick(int position, MediaItem track) {
             Log.d(LOG_TAG, "Queue click - " + position + " " + track);
 
-//            if(mBound) {
-//                mService.loadTrack(position);
-//            }
+            if(mediaController == null) {
+                return;
+            }
+
+            mediaController.seekTo(position, 0);
         }
 
         @Override
         public void onQueueRemove(int position, MediaItem track) {
             Log.d(LOG_TAG, "Queue Remove click - " + position + " " + track);
 
-//            if(mBound){
-//                mService.removeTrackFromList(position);
-//                mAdapter.updateTracks(mService.getTrackList());
-//            }
+            if(mediaController == null) {
+                return;
+            }
+
+            mediaController.removeMediaItem(position);
+            mAdapter.removeTrack(position);
         }
     };
 }
