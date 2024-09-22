@@ -47,7 +47,7 @@ public class PlaylistsFragment extends Fragment {
 
     private JSONObject mSelectedPlaylist; 
 
-    private enum VisibleView{
+    private enum VisibleView {
         loading, playlist, selection, error
     }
 

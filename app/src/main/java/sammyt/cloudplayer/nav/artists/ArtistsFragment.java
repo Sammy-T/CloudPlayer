@@ -2,6 +2,7 @@ package sammyt.cloudplayer.nav.artists;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,16 +25,25 @@ import com.jay.widget.StickyHeadersLinearLayoutManager;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
+import sammyt.cloudplayer.data.CloudClient;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.nav.TrackAdapter;
 import sammyt.cloudplayer.nav.TrackViewModel;
+import sammyt.cloudplayer.nav.home.HomeFragment;
 
 public class ArtistsFragment extends Fragment {
 
@@ -43,7 +53,7 @@ public class ArtistsFragment extends Fragment {
     private ImageView mArtistImage;
     private TextView mArtistTitle;
 
-    private Handler mHandler = new Handler();
+    private final Handler fgHandler = new Handler(Looper.getMainLooper());
 
     private TrackViewModel trackViewModel;
     private SelectedTrackModel selectedTrackModel;
@@ -55,7 +65,7 @@ public class ArtistsFragment extends Fragment {
 
     private ArrayList<JSONObject> mTracks = new ArrayList<>();
 
-    private enum VisibleView{
+    private enum VisibleView {
         loading, artist, selection, error
     }
 
@@ -108,7 +118,7 @@ public class ArtistsFragment extends Fragment {
 
                 if(tracks == null){
                     logMessage += "New load ";
-//                    loadTrackDataFromVolley(null); //// TODO: load data
+                    loadTrackData(null);
                 }else{
                     setVisibleView(VisibleView.artist);
                 }
@@ -136,7 +146,7 @@ public class ArtistsFragment extends Fragment {
         View.OnClickListener reloadListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                loadTrackDataFromVolley(null); //// TODO: load data
+                loadTrackData(null);
             }
         };
 
@@ -172,7 +182,7 @@ public class ArtistsFragment extends Fragment {
         // Perform the initial load if necessary.
         if(trackViewModel.getTracks().getValue() == null) {
             Log.d(LOG_TAG, "New load from onStart");
-//            loadTrackDataFromVolley(null); //// TODO: load data
+            loadTrackData(null);
         }
     }
 
@@ -190,85 +200,78 @@ public class ArtistsFragment extends Fragment {
         }
     };
 
-//    private void loadTrackDataFromVolley(String url){
-//        RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
-//
-//        if(url == null) {
-//            Log.d(LOG_TAG, "Loading track data from volley.");
-//            setVisibleView(VisibleView.loading);
-//
-//            String endpoint = "/me/likes/tracks";
-//            url = getString(R.string.api_root) + endpoint + "?linked_partitioning=true";
-//
-//            mTracks.clear(); // Make sure we're not appending to possibly stale data
-//        }
-//
-//        Response.Listener<JSONObject> responseListener = new Response.Listener<JSONObject>(){
-//            @Override
-//            public void onResponse(JSONObject response) {
-//                Log.d(LOG_TAG, "Volley response:\n" + response);
-//
-//                try {
-//                    JSONArray collection = response.getJSONArray("collection");
-//
-//                    String nextPage = response.optString("next_href");
-//                    Log.d(LOG_TAG, "SC next page: " + nextPage);
-//
-//                    for(int i=0; i < collection.length(); i++){
-//                        JSONObject jsonObject = collection.getJSONObject(i);
-////                        Log.d(LOG_TAG, "Volley item: " + jsonObject);
-//
-//                        mTracks.add(jsonObject);
-//                    }
-//
-//                    // Load the next page if one exists
-//                    // or update the ViewModel
-//                    if(!nextPage.isEmpty() && !nextPage.equals("null")) {
-//                        loadTrackDataFromVolley(nextPage);
-//                    } else {
-//                        trackViewModel.setTracks(mTracks);
-//                    }
-//
-//                } catch(JSONException e) {
-//                    Log.e(LOG_TAG, "Error parsing response json", e);
-//                    setVisibleView(VisibleView.error);
-//                }
-//            }
-//        };
-//
-//        Response.ErrorListener errorListener = new Response.ErrorListener(){
-//            @Override
-//            public void onErrorResponse(VolleyError error) {
-//                Log.e(LOG_TAG, "Volley error loading tracks.", error);
-//
-//                if(error.networkResponse.statusCode == 401) {
-//                    // Redirect to the login activity to attempt a token refresh
-//                    Log.w(LOG_TAG, "Unauthorized access. Token:" + token);
-//                    ((NavActivity) requireActivity()).redirectToLogin(true);
-//                } else {
-//                    setVisibleView(VisibleView.error);
-//                }
-//            }
-//        };
-//
-//        JsonObjectRequest jsonRequest = new JsonObjectRequest(
-//                Request.Method.GET,
-//                url,
-//                null,
-//                responseListener,
-//                errorListener) {
-//            @Override
-//            public Map<String, String> getHeaders() throws AuthFailureError {
-//                // Include auth in the header
-//                Map<String, String> params = new HashMap<>();
-//                params.put("Authorization", "OAuth " + token);
-//
-//                return params;
-//            }
-//        };
-//
-//        queue.add(jsonRequest);
-//    }
+    private void loadTrackData(String url) {
+        if(url == null) {
+            Log.d(LOG_TAG, "Loading track data...");
+
+            setVisibleView(VisibleView.loading);
+
+            String limit = "24";
+            String offset = "2019-08-22T06:36:46.882Z,user-track-likes,728-00000000000042908683-00000000000432120552";
+
+            String endpoint = "/users/" + getString(R.string.user_id) + "/track_likes";
+
+            String params = "?offset=" + offset
+                    + "&limit=" + limit
+                    + "&client_id=" + getString(R.string.client_id)
+                    + "&app_version=" + getString(R.string.app_version)
+                    + "&app_locale=" + getString(R.string.app_locale);
+
+            // Set url to load initial page
+            url = getString(R.string.api_root) + endpoint + params;
+
+            mTracks.clear(); // Make sure we're not appending to possibly stale data
+        }
+
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Authorization", "OAuth " + getString(R.string.token))
+                .build();
+
+        OkHttpClient client = CloudClient.getInstance().getClient();
+
+        client.newCall(request).enqueue(new okhttp3.Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e(LOG_TAG, "Error loading liked tracks.", e);
+                fgUpdateView(VisibleView.error);
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                try {
+                    if(!response.isSuccessful()) throw new IOException("Unexpected code" + response);
+
+                    ResponseBody responseBody = response.body();
+                    String rawResponse = responseBody.string();
+
+                    JSONObject parsed = new JSONObject(rawResponse);
+
+                    String nextPage = parsed.optString("next_href");
+                    Log.d(LOG_TAG, "SC next page: " + nextPage);
+
+                    JSONArray collection = parsed.getJSONArray("collection");
+
+                    for(int i=0; i < collection.length(); i++){
+                        JSONObject item = collection.getJSONObject(i);
+                        JSONObject track = item.getJSONObject("track");
+                        mTracks.add(track);
+                    }
+
+                    // Load next page if one exists
+                    // or update the ViewModel.
+                    if(!nextPage.isEmpty() && !nextPage.equals("null")) {
+                        loadTrackData(nextPage);
+                    } else {
+                        fgUpdateTrackModel();
+                    }
+                } catch(IOException | org.json.JSONException error) {
+                    Log.e(LOG_TAG, "Error parsing response.", error);
+                    fgUpdateView(VisibleView.error);
+                }
+            }
+        });
+    }
 
     private void selectArtist(JSONObject artist){
         String title = artist.optString("username");
@@ -313,7 +316,7 @@ public class ArtistsFragment extends Fragment {
                 }
 
                 // Make sure we're updating the adapter from the correct thread
-                mHandler.post(new Runnable() {
+                fgHandler.post(new Runnable() {
                     @Override
                     public void run() {
                         mTrackAdapter.updateTracks(mArtistTracks);
@@ -408,5 +411,25 @@ public class ArtistsFragment extends Fragment {
             default:
                 return VisibleView.loading;
         }
+    }
+
+    /** A helper that uses a handler to avoid updating from a bg thread */
+    private void fgUpdateView(VisibleView visibleView) {
+        fgHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                setVisibleView(visibleView);
+            }
+        });
+    }
+
+    /** A helper that uses a handler to avoid updating from a bg thread */
+    private void fgUpdateTrackModel() {
+        fgHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                trackViewModel.setTracks(mTracks);
+            }
+        });
     }
 }

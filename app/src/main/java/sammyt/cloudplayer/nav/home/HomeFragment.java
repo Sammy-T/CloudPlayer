@@ -43,14 +43,14 @@ public class HomeFragment extends Fragment {
 
     private ViewFlipper viewFlipper;
 
+    private final Handler fgHandler = new Handler(Looper.getMainLooper());
+
     private TrackViewModel trackViewModel;
     private SelectedTrackModel selectedTrackModel;
 
     private TrackAdapter mAdapter;
 
     private final ArrayList<JSONObject> mTracks = new ArrayList<>();
-
-    private final Handler fgHandler = new Handler(Looper.getMainLooper());
 
     private enum VisibleView {
         loading, loaded, error
