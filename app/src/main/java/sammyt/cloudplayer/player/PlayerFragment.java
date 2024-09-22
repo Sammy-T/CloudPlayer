@@ -49,9 +49,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import me.bogerchan.niervisualizer.NierVisualizerManager;
-import me.bogerchan.niervisualizer.renderer.IRenderer;
-import me.bogerchan.niervisualizer.renderer.columnar.ColumnarType1Renderer;
 import sammyt.cloudplayer.PlayerService;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.data.PlayerSessionId;
@@ -65,7 +62,7 @@ public class PlayerFragment extends Fragment {
     
     private boolean mIsDragging = false;
     
-    private SurfaceView mSurface;
+    private SurfaceView mSurface; //// TODO: Remove or add new visualizer
     private ImageView mImageView;
     private TextView mTitleView;
     private TextView mArtistView;
@@ -79,8 +76,6 @@ public class PlayerFragment extends Fragment {
 
     private ObjectAnimator mProgressAnim;
     private ObjectAnimator mSecProgressAnim;
-
-    private NierVisualizerManager mVisualizerManager;
 
     private ListenableFuture<MediaController> controllerFuture;
     private MediaController mediaController;
@@ -275,11 +270,6 @@ public class PlayerFragment extends Fragment {
 
     @Override
     public void onPause(){
-        if(mVisualizerManager != null) {
-            mVisualizerManager.stop();
-            mVisualizerManager.release();
-        }
-
         executor.shutdown();
 
         super.onPause();
@@ -289,33 +279,6 @@ public class PlayerFragment extends Fragment {
     public void onStop() {
         MediaController.releaseFuture(controllerFuture);
         super.onStop();
-    }
-
-    private void initVisualizer(int sessionId){
-        if(sessionId <= 0){
-            Log.w(LOG_TAG, "Invalid Session ID: " + sessionId);
-            return;
-        }
-
-        if(mVisualizerManager != null){
-            mVisualizerManager.stop();
-            mVisualizerManager.release();
-        }
-
-        mVisualizerManager = new NierVisualizerManager();
-
-        int state = mVisualizerManager.init(sessionId);
-        if (NierVisualizerManager.SUCCESS != state){
-            Log.e(LOG_TAG, "Error initializing visualizer manager");
-            return;
-        }
-        Log.d(LOG_TAG, "state: " + state);
-
-        Paint visPaint = new Paint();
-        visPaint.setColor(ContextCompat.getColor(requireContext(), R.color.colorAccent));
-        visPaint.setAlpha(150);
-
-        mVisualizerManager.start(mSurface, new IRenderer[]{new ColumnarType1Renderer(visPaint)});
     }
 
     private void updateUI() {
@@ -427,14 +390,12 @@ public class PlayerFragment extends Fragment {
     }
 
     private void initController() {
-        SessionToken sessionToken = new SessionToken(requireContext(),
-                new ComponentName(requireContext(), PlayerService.class));
+        SessionToken sessionToken = new SessionToken(requireContext(), new ComponentName(requireContext(), PlayerService.class));
 
         controllerFuture = new MediaController.Builder(requireContext(), sessionToken).buildAsync();
         controllerFuture.addListener(() -> {
             try {
                 setController(controllerFuture.get());
-                initVisualizer(PlayerSessionId.getInstance().getSessionId());
                 updateUI();
             } catch(ExecutionException | InterruptedException e) {
                 Log.e(LOG_TAG, "Unable to get mediaController", e);
@@ -471,7 +432,6 @@ public class PlayerFragment extends Fragment {
             @Override
             public void onAudioSessionIdChanged(int audioSessionId) {
                 Player.Listener.super.onAudioSessionIdChanged(audioSessionId);
-                initVisualizer(audioSessionId);
             }
         });
     }
@@ -507,8 +467,6 @@ public class PlayerFragment extends Fragment {
             new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if(isGranted) {
                     Log.d(LOG_TAG, "Record Permission Granted");
-
-                    initVisualizer(PlayerSessionId.getInstance().getSessionId());
                 }
             });
 }
