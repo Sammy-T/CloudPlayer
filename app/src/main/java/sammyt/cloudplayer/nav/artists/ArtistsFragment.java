@@ -167,7 +167,7 @@ public class ArtistsFragment extends Fragment {
                     return; // Consume the back press event
                 }
 
-                remove();
+                remove(); // Remove the callback
                 requireActivity().getOnBackPressedDispatcher().onBackPressed(); // Allow normal response
             }
         };
@@ -175,17 +175,6 @@ public class ArtistsFragment extends Fragment {
         requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), onBack);
 
         return root;
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-
-        // Perform the initial load if necessary.
-        if(trackViewModel.getTracks().getValue() == null) {
-            Log.d(LOG_TAG, "New load from onStart");
-            loadTrackData(null);
-        }
     }
 
     private ArtistsAdapter.OnArtistClickListener mArtistClickListener = new ArtistsAdapter.OnArtistClickListener() {

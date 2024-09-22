@@ -1,6 +1,8 @@
 package sammyt.cloudplayer.nav.playlists;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +13,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
@@ -22,12 +25,20 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
+import sammyt.cloudplayer.data.CloudClient;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.nav.TrackAdapter;
+import sammyt.cloudplayer.nav.artists.ArtistsFragment;
 
 public class PlaylistsFragment extends Fragment {
 
@@ -39,13 +50,17 @@ public class PlaylistsFragment extends Fragment {
     private TextView mPlaylistSelectedCount;
     private RecyclerView mPlaylistTrackRecycler;
 
+    private final Handler fgHandler = new Handler(Looper.getMainLooper());
+
     private PlaylistsViewModel playlistsViewModel;
     private SelectedTrackModel selectedTrackModel;
 
     private PlaylistAdapter mAdapter;
     private TrackAdapter mTrackAdapter;
 
-    private JSONObject mSelectedPlaylist; 
+    private JSONObject mSelectedPlaylist;
+
+    private final ArrayList<JSONObject> mPlaylists = new ArrayList<>();
 
     private enum VisibleView {
         loading, playlist, selection, error
@@ -100,7 +115,7 @@ public class PlaylistsFragment extends Fragment {
                 String logMessage = "ViewModel onChanged - ";
 
                 if(playlists == null){
-//                    loadPlaylistDataFromVolley(); //// TODO: load data
+                    loadPlaylistCollectionData(null);
                 }else{
                     setVisibleView(VisibleView.playlist);
                 }
@@ -128,7 +143,7 @@ public class PlaylistsFragment extends Fragment {
         View.OnClickListener reloadListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                loadPlaylistDataFromVolley(); //// TODO: load data
+                loadPlaylistCollectionData(null);
             }
         };
 
@@ -139,33 +154,22 @@ public class PlaylistsFragment extends Fragment {
         // Allows the user to manually retry loading the data
         retryLoading.setOnClickListener(reloadListener);
 
-        //// TODO: Respond to back presses
-//        NavActivity.onBackListener onBackListener = new NavActivity.onBackListener() {
-//            @Override
-//            public boolean onBack() {
-//                if(getVisibleView() == VisibleView.selection) {
-//                    setVisibleView(VisibleView.playlist); // Navigate back to the playlist list
-//                    return true; // Consume the back press event
-//                }
-//
-//                return false; // Allow normal response
-//            }
-//        };
-//
-//        ((NavActivity) requireActivity()).setOnBackListener(onBackListener);
+        OnBackPressedCallback onBack = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if(getVisibleView() == VisibleView.selection) {
+                    setVisibleView(VisibleView.playlist); // Navigate back to the artist list
+                    return; // Consume the back press event
+                }
+
+                remove(); // Remove the callback
+                requireActivity().getOnBackPressedDispatcher().onBackPressed(); // Allow normal response
+            }
+        };
+
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), onBack);
 
         return root;
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-
-        // Perform the initial load if necessary
-        if(playlistsViewModel.getPlaylists().getValue() == null) {
-            Log.d(LOG_TAG, "New load from onStart");
-//            loadPlaylistDataFromVolley(); //// TODO: load data
-        }
     }
 
     private PlaylistAdapter.onPlaylistClickListener mPlaylistClickListener = new PlaylistAdapter.onPlaylistClickListener() {
@@ -196,97 +200,162 @@ public class PlaylistsFragment extends Fragment {
         }
     };
 
-//    private void loadPlaylistDataFromVolley() {
-//        RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
-//
-//        Log.d(LOG_TAG, "Loading playlist data from volley.");
-//        setVisibleView(VisibleView.loading);
-//
-//        String endpoint = "/me/playlists";
-//        String url = getString(R.string.api_root) + endpoint;
-//
-//        Response.Listener<JSONArray> responseListener = new Response.Listener<JSONArray>() {
-//            @Override
-//            public void onResponse(JSONArray response) {
-//                Log.d(LOG_TAG, "Volley response:\n" + response);
-//
-//                try {
-//                    ArrayList<JSONObject> playlists = new ArrayList<>();
-//
-//                    for(int i=0; i < response.length(); i++) {
-//                        JSONObject playlistObject = response.getJSONObject(i);
-//                        Log.d(LOG_TAG, "playlist object:\n" + playlistObject);
-//
-//                        playlists.add(playlistObject);
+    private void loadPlaylistCollectionData(String url) {
+        if(url == null) {
+            Log.d(LOG_TAG, "Loading playlist collection data...");
+
+            setVisibleView(VisibleView.loading);
+
+            String limit = "12";
+            String offset = "2015-04-05T08:33:55.000Z,playlists,00000000000095707607";
+
+            String endpoint = "/me/library/all";
+
+            String params = "?offset=" + offset
+                    + "&limit=" + limit
+                    + "&client_id=" + getString(R.string.client_id)
+                    + "&app_version=" + getString(R.string.app_version)
+                    + "&app_locale=" + getString(R.string.app_locale);
+
+            // Set url to load initial page
+            url = getString(R.string.api_root) + endpoint + params;
+
+            mPlaylists.clear(); // Make sure we're not appending to possibly stale data
+        }
+
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Authorization", "OAuth " + getString(R.string.token))
+                .build();
+
+        OkHttpClient client = CloudClient.getInstance().getClient();
+
+        client.newCall(request).enqueue(new okhttp3.Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e(LOG_TAG, "Error loading playlists.", e);
+                fgUpdateView(VisibleView.error);
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                try {
+                    if(!response.isSuccessful()) throw new IOException("Unexpected code" + response);
+
+                    ResponseBody responseBody = response.body();
+                    String rawResponse = responseBody.string();
+
+                    JSONObject parsed = new JSONObject(rawResponse);
+
+                    String nextPage = parsed.optString("next_href");
+                    Log.d(LOG_TAG, "SC next page: " + nextPage);
+
+                    JSONArray collection = parsed.getJSONArray("collection");
+
+                    for(int i=0; i < collection.length(); i++){
+                        JSONObject item = collection.getJSONObject(i);
+                        JSONObject playlist = item.getJSONObject("playlist");
+                        mPlaylists.add(playlist);
+                    }
+
+                    //// TODO: 'next_href' might point to duplicate data for some dumbass reason so just ignore it for now
+//                    // Load next page if one exists
+//                    // or update the ViewModel.
+//                    if(!nextPage.isEmpty() && !nextPage.equals("null")) {
+//                        loadPlaylistData(nextPage);
+//                    } else {
+//                        fgUpdateTrackModel();
 //                    }
-//
-//                    playlistsViewModel.setPlaylists(playlists); // Update the ViewModel
-//
-//                } catch(JSONException e) {
-//                    Log.e(LOG_TAG, "Error parsing response json", e);
-//                    setVisibleView(VisibleView.error);
-//                }
-//            }
-//        };
-//
-//        Response.ErrorListener errorListener = new Response.ErrorListener() {
-//            @Override
-//            public void onErrorResponse(VolleyError error) {
-//                Log.e(LOG_TAG, "Error loading playlists", error);
-//
-//                if(error.networkResponse.statusCode == 401) {
-//                    // Redirect to the login activity to attempt a token refresh
-//                    Log.w(LOG_TAG, "Unauthorized access. Token:" + token);
-//                    ((NavActivity) requireActivity()).redirectToLogin(true);
-//                } else {
-//                    setVisibleView(VisibleView.error);
-//                }
-//            }
-//        };
-//
-//        JsonArrayRequest jsonRequest = new JsonArrayRequest(
-//                Request.Method.GET,
-//                url,
-//                null,
-//                responseListener,
-//                errorListener) {
-//            @Override
-//            public Map<String, String> getHeaders() throws AuthFailureError {
-//                // Include auth in the header
-//                Map<String, String> params = new HashMap<>();
-//                params.put("Authorization", "OAuth " + token);
-//
-//                return params;
-//            }
-//        };
-//
-//        queue.add(jsonRequest);
-//    }
+
+                    fgUpdatePlaylistModel();
+                } catch(IOException | org.json.JSONException error) {
+                    Log.e(LOG_TAG, "Error parsing response.", error);
+                    fgUpdateView(VisibleView.error);
+                }
+            }
+        });
+    }
 
     private void selectPlaylist(JSONObject playlist){
         mSelectedPlaylist = playlist; 
 
         try {
+            Long id = playlist.getLong("id");
+            String secretToken = playlist.getString("secret_token");
             String title = playlist.getString("title");
             String count = playlist.getString("track_count") + " tracks";
 
             mPlaylistSelectedTitle.setText(title);
             mPlaylistSelectedCount.setText(count);
 
-            JSONArray tracksJsonArray = playlist.getJSONArray("tracks");
-            ArrayList<JSONObject> tracks = new ArrayList<>();
-
-            for(int i=0; i < tracksJsonArray.length(); i++) {
-                tracks.add(tracksJsonArray.getJSONObject(i));
-            }
-
-            mTrackAdapter.updateTracks(tracks); 
+            loadPlaylistData(id, secretToken);
         } catch(JSONException e) {
             Log.e(LOG_TAG, "Error parsing json", e);
             return;
         }
 
         setVisibleView(VisibleView.selection);
+    }
+
+    private void loadPlaylistData(Long playlistId, String secretToken) {
+        setVisibleView(VisibleView.loading);
+
+        String representation = "full";
+
+        String endpoint = "/playlists/" + playlistId;
+
+        String params = "?representation=" + representation
+                + "&secret_token=" + secretToken
+                + "&client_id=" + getString(R.string.client_id)
+                + "&app_version=" + getString(R.string.app_version)
+                + "&app_locale=" + getString(R.string.app_locale);
+
+        String url = getString(R.string.api_root) + endpoint + params;
+
+        Log.d(LOG_TAG, "Loading playlist data...\n" + url);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Authorization", "OAuth " + getString(R.string.token))
+                .build();
+
+        OkHttpClient client = CloudClient.getInstance().getClient();
+
+        client.newCall(request).enqueue(new okhttp3.Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e(LOG_TAG, "Error loading playlist data.", e);
+                fgUpdateView(VisibleView.error);
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                try {
+                    if(!response.isSuccessful()) throw new IOException("Unexpected code" + response);
+
+                    ResponseBody responseBody = response.body();
+                    String rawResponse = responseBody.string();
+
+                    JSONObject parsed = new JSONObject(rawResponse);
+
+                    JSONArray playlistTracks = parsed.getJSONArray("tracks");
+                    ArrayList<JSONObject> tracks = new ArrayList<>();
+
+                    for(int i=0; i < playlistTracks.length(); i++) {
+                        JSONObject track = playlistTracks.getJSONObject(i);
+
+                        // Check if there's valid data
+                        // because, for some reason, some of the tracks return with missing/redacted data.
+                        if(track.has("title")) tracks.add(playlistTracks.getJSONObject(i));
+                    }
+
+                    fgUpdatePlaylistTracks(tracks);
+                } catch(IOException | org.json.JSONException error) {
+                    Log.e(LOG_TAG, "Error parsing response.", error);
+                    fgUpdateView(VisibleView.error);
+                }
+            }
+        });
     }
 
     private void setVisibleView(VisibleView visibleView){
@@ -326,5 +395,35 @@ public class PlaylistsFragment extends Fragment {
             default:
                 return VisibleView.loading;
         }
+    }
+
+    /** A helper that uses a handler to avoid updating from a bg thread */
+    private void fgUpdateView(VisibleView visibleView) {
+        fgHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                setVisibleView(visibleView);
+            }
+        });
+    }
+
+    /** A helper that uses a handler to avoid updating from a bg thread */
+    private void fgUpdatePlaylistModel() {
+        fgHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                playlistsViewModel.setPlaylists(mPlaylists);
+            }
+        });
+    }
+
+    /** A helper that uses a handler to avoid updating from a bg thread */
+    private void fgUpdatePlaylistTracks(ArrayList<JSONObject> tracks) {
+        fgHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                mTrackAdapter.updateTracks(tracks);
+            }
+        });
     }
 }

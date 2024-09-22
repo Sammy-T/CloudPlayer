@@ -80,10 +80,7 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHo
             count = playlist.getString("track_count") + " tracks";
             playlistImage = playlist.getString("artwork_url");
 
-            if(playlistImage == null || playlistImage.equals("null")) {
-                // Try to fallback to the first track's image
-                playlistImage = playlist.getJSONArray("tracks").getJSONObject(0).getString("artwork_url");
-            }
+            //// TODO: Find a fallback image when the playlist image is null?
         } catch(JSONException e) {
             Log.e(LOG_TAG, "Error parsing json", e);
             return;
