@@ -66,26 +66,6 @@ public class NavActivity extends AppCompatActivity {
     private ScheduledFuture<?> future;
     private final Handler handler = new Handler();
 
-    //// TODO: Back listener
-//    private onBackListener mBackListener;
-//
-//    public interface onBackListener{
-//        boolean onBack();
-//    }
-//
-//    public void setOnBackListener(onBackListener l){
-//        mBackListener = l;
-//    }
-//
-//    @Override
-//    public void onBackPressed(){
-//        if(mBackListener != null && mBackListener.onBack()){
-//            return; // Consume the event
-//        }
-//
-//        super.onBackPressed();
-//    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

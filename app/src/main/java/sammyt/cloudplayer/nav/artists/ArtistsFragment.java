@@ -14,6 +14,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
 
+import androidx.activity.OnBackPressedCallback;
+import androidx.activity.OnBackPressedDispatcher;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
@@ -157,20 +159,20 @@ public class ArtistsFragment extends Fragment {
         // Allows the user to manually retry loading the data
         retryLoading.setOnClickListener(reloadListener);
 
-        //// TODO: Respond to back presses
-//        NavActivity.onBackListener onBackListener = new NavActivity.onBackListener() {
-//            @Override
-//            public boolean onBack() {
-//                if(getVisibleView() == VisibleView.selection) {
-//                    setVisibleView(VisibleView.artist); // Navigate back to the artist list
-//                    return true; // Consume the back press event
-//                }
-//
-//                return false; // Allow normal response
-//            }
-//        };
-//
-//        ((NavActivity) requireActivity()).setOnBackListener(onBackListener);
+        OnBackPressedCallback onBack = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if(getVisibleView() == VisibleView.selection) {
+                    setVisibleView(VisibleView.artist); // Navigate back to the artist list
+                    return; // Consume the back press event
+                }
+
+                remove();
+                requireActivity().getOnBackPressedDispatcher().onBackPressed(); // Allow normal response
+            }
+        };
+
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), onBack);
 
         return root;
     }
