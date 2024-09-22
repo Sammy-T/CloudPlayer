@@ -105,7 +105,7 @@ public class LoginActivity extends AppCompatActivity {
 
         if(actionOverride != null && actionOverride.equals(ACTION_REFRESH)) {
             requestTokenRefresh(refreshToken);
-        } else if(!token.equals("") && !refreshToken.equals("")) {
+        } else if(!token.isEmpty() && !refreshToken.isEmpty()) {
             redirectToNavActivity(); // Navigate to the Nav activity if a token is found
         }
     }
@@ -115,7 +115,7 @@ public class LoginActivity extends AppCompatActivity {
      * Upon approval, the endpoint sends an auth code to the redirect uri.
      */
     private void connectAccount() {
-        if(redirectUri.equals("")) {
+        if(redirectUri.isEmpty()) {
             Log.e(LOG_TAG, "No redirect uri");
             return;
         }
@@ -143,7 +143,7 @@ public class LoginActivity extends AppCompatActivity {
                 String token = responseObject.getString("access_token");
                 String refreshToken = responseObject.getString("refresh_token");
 
-                if(token.equals("")) {
+                if(token.isEmpty()) {
                     String msg = "No token received";
                     Log.e(LOG_TAG, msg);
                     Toast.makeText(LoginActivity.this, msg, Toast.LENGTH_SHORT).show();
@@ -177,12 +177,12 @@ public class LoginActivity extends AppCompatActivity {
      * @param authCode The entered auth code.
      */
     private void requestToken(String authCode) {
-        if(redirectUri.equals("")) {
+        if(redirectUri.isEmpty()) {
             Log.e(LOG_TAG, "No redirect uri");
             return;
         }
 
-        if(authCode.equals("")) {
+        if(authCode.isEmpty()) {
             String msg = "No auth code entered";
             Log.w(LOG_TAG, msg);
             Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
@@ -227,7 +227,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void requestTokenRefresh(String refreshToken) {
-        if(refreshToken.equals("")) {
+        if(refreshToken.isEmpty()) {
             String msg = "No refresh token.";
             Log.e(LOG_TAG, msg);
             Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();

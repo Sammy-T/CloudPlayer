@@ -119,7 +119,7 @@ public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
             artistHolder.artistName.setText(artistName);
 
-            if(artistImage != null && !artistImage.equals("")){
+            if(artistImage != null && !artistImage.isEmpty()){
                 // Request measuring of the item's view so we have some dimensions to use
                 holder.itemView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
                 int width = holder.itemView.getMeasuredHeight();

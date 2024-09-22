@@ -16,7 +16,6 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.Observer;
@@ -69,24 +68,25 @@ public class NavActivity extends AppCompatActivity {
     private ScheduledFuture<?> future;
     private final Handler handler = new Handler();
 
-    private onBackListener mBackListener;
-
-    public interface onBackListener{
-        boolean onBack();
-    }
-
-    public void setOnBackListener(onBackListener l){
-        mBackListener = l;
-    }
-
-    @Override
-    public void onBackPressed(){
-        if(mBackListener != null && mBackListener.onBack()){
-            return; // Consume the event
-        }
-
-        super.onBackPressed();
-    }
+    //// TODO: Back listener
+//    private onBackListener mBackListener;
+//
+//    public interface onBackListener{
+//        boolean onBack();
+//    }
+//
+//    public void setOnBackListener(onBackListener l){
+//        mBackListener = l;
+//    }
+//
+//    @Override
+//    public void onBackPressed(){
+//        if(mBackListener != null && mBackListener.onBack()){
+//            return; // Consume the event
+//        }
+//
+//        super.onBackPressed();
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,7 +111,7 @@ public class NavActivity extends AppCompatActivity {
         token = sharedPrefs.getString(getString(R.string.token_key), "");
 
         // Redirect back to login if no token was found
-        if(token.equals("")) {
+        if(token.isEmpty()) {
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
         }
@@ -254,7 +254,7 @@ public class NavActivity extends AppCompatActivity {
         if(mediaController.isPlaying()) {
             updateUI();
             selectedTrackModel.updateSelectedTrack(mediaController.getCurrentMediaItem(), LOG_TAG);
-            future = executor.scheduleAtFixedRate(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
+            future = executor.scheduleWithFixedDelay(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
         }
 
         mediaController.addListener(new Player.Listener() {
@@ -267,7 +267,7 @@ public class NavActivity extends AppCompatActivity {
                 if(!isPlaying && future != null) {
                     future.cancel(true);
                 } else if(isPlaying) {
-                    future = executor.scheduleAtFixedRate(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
+                    future = executor.scheduleWithFixedDelay(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
                 }
             }
 

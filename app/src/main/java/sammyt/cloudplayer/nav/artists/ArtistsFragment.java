@@ -163,20 +163,20 @@ public class ArtistsFragment extends Fragment {
         // Allows the user to manually retry loading the data
         retryLoading.setOnClickListener(reloadListener);
 
-        // Respond to back presses
-        NavActivity.onBackListener onBackListener = new NavActivity.onBackListener() {
-            @Override
-            public boolean onBack() {
-                if(getVisibleView() == VisibleView.selection) {
-                    setVisibleView(VisibleView.artist); // Navigate back to the artist list
-                    return true; // Consume the back press event
-                }
-
-                return false; // Allow normal response
-            }
-        };
-
-        ((NavActivity) requireActivity()).setOnBackListener(onBackListener);
+        //// TODO: Respond to back presses
+//        NavActivity.onBackListener onBackListener = new NavActivity.onBackListener() {
+//            @Override
+//            public boolean onBack() {
+//                if(getVisibleView() == VisibleView.selection) {
+//                    setVisibleView(VisibleView.artist); // Navigate back to the artist list
+//                    return true; // Consume the back press event
+//                }
+//
+//                return false; // Allow normal response
+//            }
+//        };
+//
+//        ((NavActivity) requireActivity()).setOnBackListener(onBackListener);
 
         return root;
     }
@@ -242,7 +242,7 @@ public class ArtistsFragment extends Fragment {
 
                     // Load the next page if one exists
                     // or update the ViewModel
-                    if(!nextPage.equals("") && !nextPage.equals("null")) {
+                    if(!nextPage.isEmpty() && !nextPage.equals("null")) {
                         loadTrackDataFromVolley(nextPage);
                     } else {
                         trackViewModel.setTracks(mTracks);

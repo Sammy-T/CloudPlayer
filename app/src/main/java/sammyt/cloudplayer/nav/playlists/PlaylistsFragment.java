@@ -157,20 +157,20 @@ public class PlaylistsFragment extends Fragment {
         // Allows the user to manually retry loading the data
         retryLoading.setOnClickListener(reloadListener);
 
-        // Respond to back presses
-        NavActivity.onBackListener onBackListener = new NavActivity.onBackListener() {
-            @Override
-            public boolean onBack() {
-                if(getVisibleView() == VisibleView.selection) {
-                    setVisibleView(VisibleView.playlist); // Navigate back to the playlist list
-                    return true; // Consume the back press event
-                }
-
-                return false; // Allow normal response
-            }
-        };
-
-        ((NavActivity) requireActivity()).setOnBackListener(onBackListener);
+        //// TODO: Respond to back presses
+//        NavActivity.onBackListener onBackListener = new NavActivity.onBackListener() {
+//            @Override
+//            public boolean onBack() {
+//                if(getVisibleView() == VisibleView.selection) {
+//                    setVisibleView(VisibleView.playlist); // Navigate back to the playlist list
+//                    return true; // Consume the back press event
+//                }
+//
+//                return false; // Allow normal response
+//            }
+//        };
+//
+//        ((NavActivity) requireActivity()).setOnBackListener(onBackListener);
 
         return root;
     }

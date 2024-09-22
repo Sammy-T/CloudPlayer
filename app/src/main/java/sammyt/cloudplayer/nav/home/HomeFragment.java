@@ -196,7 +196,7 @@ public class HomeFragment extends Fragment {
 
                     // Load the next page if one exists
                     // or update the ViewModel
-                    if(!nextPage.equals("") && !nextPage.equals("null")) {
+                    if(!nextPage.isEmpty() && !nextPage.equals("null")) {
                         loadTrackDataFromVolley(nextPage);
                     } else {
                         trackViewModel.setTracks(mTracks);

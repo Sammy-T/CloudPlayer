@@ -357,7 +357,7 @@ public class PlayerFragment extends Fragment {
 
         String rawUrl = mediaItem.mediaMetadata.extras.getString("artwork_url");
 
-        if(rawUrl != null && !rawUrl.equals("")){
+        if(rawUrl != null && !rawUrl.isEmpty()){
             final String trackArtUrl = rawUrl.replace("large", "t500x500");
 
             // Load the track image
@@ -446,7 +446,7 @@ public class PlayerFragment extends Fragment {
         mediaController = controller;
 
         if(mediaController.isPlaying()) {
-            future = executor.scheduleAtFixedRate(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
+            future = executor.scheduleWithFixedDelay(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
         }
 
         mediaController.addListener(new Player.Listener() {
@@ -463,7 +463,7 @@ public class PlayerFragment extends Fragment {
                 if(!isPlaying && future != null) {
                     future.cancel(true);
                 } else if(isPlaying) {
-                    future = executor.scheduleAtFixedRate(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
+                    future = executor.scheduleWithFixedDelay(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
                 }
             }
 
