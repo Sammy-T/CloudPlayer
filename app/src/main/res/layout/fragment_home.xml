@@ -57,12 +57,6 @@
                 android:layout_height="wrap_content"
                 android:text="@string/retry"
                 style="@style/Widget.AppCompat.Button.Colored" />
-            <Button
-                android:id="@+id/manual_login"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/manual_login"
-                style="@style/ButtonBorderlessColored" />
         </LinearLayout>
     </ViewFlipper>
 </androidx.constraintlayout.widget.ConstraintLayout>

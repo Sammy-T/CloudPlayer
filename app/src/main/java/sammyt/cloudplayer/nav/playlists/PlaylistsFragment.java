@@ -1,6 +1,5 @@
 package sammyt.cloudplayer.nav.playlists;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -19,33 +18,20 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.android.volley.AuthFailureError;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonArrayRequest;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
-import sammyt.cloudplayer.LoginActivity;
 import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
-import sammyt.cloudplayer.data.CloudQueue;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.nav.TrackAdapter;
 
 public class PlaylistsFragment extends Fragment {
 
     private static final String LOG_TAG = PlaylistsFragment.class.getSimpleName();
-
-    private String token;
 
     private ViewFlipper viewFlipper;
     private RecyclerView mPlaylistRecycler;
@@ -111,14 +97,10 @@ public class PlaylistsFragment extends Fragment {
         playlistsViewModel.getPlaylists().observe(getViewLifecycleOwner(), new Observer<ArrayList<JSONObject>>() {
             @Override
             public void onChanged(ArrayList<JSONObject> playlists) {
-                // Since we're initializing the View Model before we're able to retrieve the
-                // activity's token, ignore callbacks without it (i.e. the initial callback).
-                if(token == null) return;
-
                 String logMessage = "ViewModel onChanged - ";
 
                 if(playlists == null){
-                    loadPlaylistDataFromVolley();
+//                    loadPlaylistDataFromVolley(); //// TODO: load data
                 }else{
                     setVisibleView(VisibleView.playlist);
                 }
@@ -146,7 +128,7 @@ public class PlaylistsFragment extends Fragment {
         View.OnClickListener reloadListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                loadPlaylistDataFromVolley();
+//                loadPlaylistDataFromVolley(); //// TODO: load data
             }
         };
 
@@ -179,13 +161,10 @@ public class PlaylistsFragment extends Fragment {
     public void onStart() {
         super.onStart();
 
-        // Retrieve the token from the activity
-        token = ((NavActivity) requireActivity()).token;
-
         // Perform the initial load if necessary
         if(playlistsViewModel.getPlaylists().getValue() == null) {
             Log.d(LOG_TAG, "New load from onStart");
-            loadPlaylistDataFromVolley();
+//            loadPlaylistDataFromVolley(); //// TODO: load data
         }
     }
 
@@ -217,80 +196,72 @@ public class PlaylistsFragment extends Fragment {
         }
     };
 
-    private void loadPlaylistDataFromVolley() {
-        RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
-
-        Log.d(LOG_TAG, "Loading playlist data from volley.");
-        setVisibleView(VisibleView.loading);
-
-        String endpoint = "/me/playlists";
-        String url = getString(R.string.api_root) + endpoint;
-
-        Response.Listener<JSONArray> responseListener = new Response.Listener<JSONArray>() {
-            @Override
-            public void onResponse(JSONArray response) {
-                Log.d(LOG_TAG, "Volley response:\n" + response);
-
-                try {
-                    ArrayList<JSONObject> playlists = new ArrayList<>();
-
-                    for(int i=0; i < response.length(); i++) {
-                        JSONObject playlistObject = response.getJSONObject(i);
-                        Log.d(LOG_TAG, "playlist object:\n" + playlistObject);
-
-                        playlists.add(playlistObject);
-                    }
-
-                    playlistsViewModel.setPlaylists(playlists); // Update the ViewModel
-
-                } catch(JSONException e) {
-                    Log.e(LOG_TAG, "Error parsing response json", e);
-                    setVisibleView(VisibleView.error);
-                }
-            }
-        };
-
-        Response.ErrorListener errorListener = new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e(LOG_TAG, "Error loading playlists", error);
-
-                if(error.networkResponse.statusCode == 401) {
-                    // Redirect to the login activity to attempt a token refresh
-                    Log.w(LOG_TAG, "Unauthorized access. Token:" + token);
-                    ((NavActivity) requireActivity()).redirectToLogin(true);
-                } else {
-                    setVisibleView(VisibleView.error);
-                }
-            }
-        };
-
-        JsonArrayRequest jsonRequest = new JsonArrayRequest(
-                Request.Method.GET,
-                url,
-                null,
-                responseListener,
-                errorListener) {
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
-                // Include auth in the header
-                Map<String, String> params = new HashMap<>();
-                params.put("Authorization", "OAuth " + token);
-
-                return params;
-            }
-        };
-
-        queue.add(jsonRequest);
-    }
-
-    private void refreshTokenAtLogin() {
-        Intent intent = new Intent(requireContext(), LoginActivity.class);
-        intent.putExtra(LoginActivity.EXTRA_ACTION, LoginActivity.ACTION_REFRESH);
-
-        startActivity(intent);
-        requireActivity().finish();
-    }
+//    private void loadPlaylistDataFromVolley() {
+//        RequestQueue queue = CloudQueue.getInstance(getContext()).getRequestQueue();
+//
+//        Log.d(LOG_TAG, "Loading playlist data from volley.");
+//        setVisibleView(VisibleView.loading);
+//
+//        String endpoint = "/me/playlists";
+//        String url = getString(R.string.api_root) + endpoint;
+//
+//        Response.Listener<JSONArray> responseListener = new Response.Listener<JSONArray>() {
+//            @Override
+//            public void onResponse(JSONArray response) {
+//                Log.d(LOG_TAG, "Volley response:\n" + response);
+//
+//                try {
+//                    ArrayList<JSONObject> playlists = new ArrayList<>();
+//
+//                    for(int i=0; i < response.length(); i++) {
+//                        JSONObject playlistObject = response.getJSONObject(i);
+//                        Log.d(LOG_TAG, "playlist object:\n" + playlistObject);
+//
+//                        playlists.add(playlistObject);
+//                    }
+//
+//                    playlistsViewModel.setPlaylists(playlists); // Update the ViewModel
+//
+//                } catch(JSONException e) {
+//                    Log.e(LOG_TAG, "Error parsing response json", e);
+//                    setVisibleView(VisibleView.error);
+//                }
+//            }
+//        };
+//
+//        Response.ErrorListener errorListener = new Response.ErrorListener() {
+//            @Override
+//            public void onErrorResponse(VolleyError error) {
+//                Log.e(LOG_TAG, "Error loading playlists", error);
+//
+//                if(error.networkResponse.statusCode == 401) {
+//                    // Redirect to the login activity to attempt a token refresh
+//                    Log.w(LOG_TAG, "Unauthorized access. Token:" + token);
+//                    ((NavActivity) requireActivity()).redirectToLogin(true);
+//                } else {
+//                    setVisibleView(VisibleView.error);
+//                }
+//            }
+//        };
+//
+//        JsonArrayRequest jsonRequest = new JsonArrayRequest(
+//                Request.Method.GET,
+//                url,
+//                null,
+//                responseListener,
+//                errorListener) {
+//            @Override
+//            public Map<String, String> getHeaders() throws AuthFailureError {
+//                // Include auth in the header
+//                Map<String, String> params = new HashMap<>();
+//                params.put("Authorization", "OAuth " + token);
+//
+//                return params;
+//            }
+//        };
+//
+//        queue.add(jsonRequest);
+//    }
 
     private void selectPlaylist(JSONObject playlist){
         mSelectedPlaylist = playlist; 
