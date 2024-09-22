@@ -1,7 +1,6 @@
 package sammyt.cloudplayer;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -20,9 +19,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import sammyt.cloudplayer.data.PlayerSessionId;
 
@@ -96,17 +93,8 @@ public class PlayerService extends MediaSessionService implements MediaSession.C
 
     @OptIn(markerClass = UnstableApi.class)
     private MediaSource.Factory getMediaSourceFactory() {
-        // Retrieve the token
-        SharedPreferences sharedPrefs = context.getSharedPreferences(getString(R.string.pref_file_key), Context.MODE_PRIVATE);
-        String token = sharedPrefs.getString(getString(R.string.token_key), "");
-
-        // Create the request header parameters
-        Map<String, String> params = new HashMap<>();
-        params.put("Authorization", "OAuth " + token);
-
         // Create the Data Source factory and add the header parameters
         DefaultHttpDataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory();
-        dataSourceFactory.setDefaultRequestProperties(params);
 
         // Prepare the MediaSource.Factory using the DefaultHttpDataSource.Factory
         // so the custom authorization parameter is included in the request header.

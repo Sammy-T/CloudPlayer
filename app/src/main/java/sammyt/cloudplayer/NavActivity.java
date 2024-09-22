@@ -16,6 +16,7 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.Observer;
@@ -32,9 +33,11 @@ import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -43,6 +46,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import sammyt.cloudplayer.data.CloudClient;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.player.PlayerActivity;
 
@@ -101,18 +111,7 @@ public class NavActivity extends AppCompatActivity {
                     return; // Prevent an endless loop if this was triggered by this activity
                 }
 
-                List<MediaItem> mediaItems = new ArrayList<>();
-
-                for(int i=0; i < selectedTrack.getTrackList().size(); i++) {
-                    JSONObject track = selectedTrack.getTrackList().get(i);
-                    MediaItem mediaItem = createMediaItem(track);
-                    mediaItems.add(mediaItem);
-                }
-
-                mediaController.setMediaItems(mediaItems, selectedTrack.getPos(), 0);
-
-                mediaController.prepare();
-                mediaController.play();
+                createMediaItem(selectedTrack.getTrack());
             }
         });
 
@@ -201,8 +200,7 @@ public class NavActivity extends AppCompatActivity {
     }
 
     private void initController() {
-        SessionToken sessionToken = new SessionToken(this,
-                new ComponentName(this, PlayerService.class));
+        SessionToken sessionToken = new SessionToken(this, new ComponentName(this, PlayerService.class));
 
         controllerFuture = new MediaController.Builder(this, sessionToken).buildAsync();
         controllerFuture.addListener(() -> {
@@ -247,34 +245,98 @@ public class NavActivity extends AppCompatActivity {
         });
     }
 
-    private MediaItem createMediaItem(JSONObject track) {
-        MediaItem mediaItem = null;
-
+    private void createMediaItem(JSONObject track) {
         try {
-            Bundle bundle = new Bundle();
-            bundle.putString("artwork_url", track.getString("artwork_url"));
+            String artworkUrl = track.getString("artwork_url");
+            String username = track.getJSONObject("user").getString("username");
+            String title = track.getString("title");
 
-            MediaItem.RequestMetadata requestMetadata = new MediaItem.RequestMetadata.Builder()
-                    .setMediaUri(Uri.parse(track.getString("stream_url")))
+            String trackAuthorization = track.getString("track_authorization");
+            String trackUrl = "";
+
+            JSONObject media = track.getJSONObject("media");
+            JSONArray transcodings = media.getJSONArray("transcodings");
+
+            for(int i=0; i < transcodings.length(); i++) {
+                JSONObject transcoding = transcodings.getJSONObject(i);
+
+                String protocol = transcoding.getJSONObject("format").getString("protocol");
+
+                if(protocol.equals("progressive")) trackUrl = transcoding.getString("url");
+            }
+
+            if(trackUrl.isEmpty()) {
+                Log.w(LOG_TAG, "wtf\n" + title + "\n" + transcodings);
+                throw new Error("Invalid track url");
+            }
+
+            String params = "?client_id=" + getString(R.string.client_id)
+                    + "&track_authorization=" + trackAuthorization;
+
+            String url = trackUrl + params;
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", "OAuth " + getString(R.string.token))
                     .build();
 
-            MediaMetadata mediaMetadata = new MediaMetadata.Builder()
-                    .setArtist(track.getJSONObject("user").getString("username"))
-                    .setTitle(track.getString("title"))
-                    .setArtworkUri(Uri.parse(track.getString("artwork_url")))
-                    .setExtras(bundle)
-                    .build();
+            OkHttpClient client = CloudClient.getInstance().getClient();
 
-            mediaItem = new MediaItem.Builder()
-                    .setMediaId(track.getString("stream_url"))
-                    .setMediaMetadata(mediaMetadata)
-                    .setRequestMetadata(requestMetadata)
-                    .build();
-        } catch(JSONException e) {
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                    Log.e(LOG_TAG, "Error getting stream url.", e);
+                }
+
+                @Override
+                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                    try {
+                        if(!response.isSuccessful()) throw new IOException("Unexpected code" + response);
+
+                        ResponseBody responseBody = response.body();
+                        String rawResponse = responseBody.string();
+
+                        JSONObject parsed = new JSONObject(rawResponse);
+
+                        String streamUrl = parsed.getString("url");
+
+                        Bundle bundle = new Bundle();
+                        bundle.putString("artwork_url", artworkUrl);
+
+                        MediaItem.RequestMetadata requestMetadata = new MediaItem.RequestMetadata.Builder()
+                                .setMediaUri(Uri.parse(streamUrl))
+                                .build();
+
+                        MediaMetadata mediaMetadata = new MediaMetadata.Builder()
+                                .setArtist(username)
+                                .setTitle(title)
+                                .setArtworkUri(Uri.parse(artworkUrl))
+                                .setExtras(bundle)
+                                .build();
+
+                        MediaItem mediaItem = new MediaItem.Builder()
+                                .setMediaId(streamUrl)
+                                .setMediaMetadata(mediaMetadata)
+                                .setRequestMetadata(requestMetadata)
+                                .build();
+
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mediaController.setMediaItem(mediaItem);
+
+                                mediaController.prepare();
+                                mediaController.play();
+                            }
+                        });
+                    } catch(IOException | JSONException e) {
+                        Log.e(LOG_TAG, "SC f*cking sucks.", e);
+                    }
+                }
+            });
+        } catch(JSONException | Error e) {
             Log.e(LOG_TAG, "Unable to create MediaItem", e);
         }
-
-        return mediaItem;
     }
 
     /**
