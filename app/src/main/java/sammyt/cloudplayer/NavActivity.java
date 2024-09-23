@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
@@ -74,7 +75,7 @@ public class NavActivity extends AppCompatActivity {
 
     private ScheduledExecutorService executor;
     private ScheduledFuture<?> future;
-    private final Handler handler = new Handler();
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

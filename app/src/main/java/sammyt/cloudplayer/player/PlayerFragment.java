@@ -10,6 +10,7 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -82,7 +83,7 @@ public class PlayerFragment extends Fragment {
 
     private ScheduledExecutorService executor;
     private ScheduledFuture<?> future;
-    private final Handler handler = new Handler();
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
     private static final String QUEUE_FRAGMENT = "QUEUE_FRAGMENT";
 

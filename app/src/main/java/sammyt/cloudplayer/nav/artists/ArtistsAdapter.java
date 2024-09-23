@@ -1,6 +1,7 @@
 package sammyt.cloudplayer.nav.artists;
 
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,6 +27,8 @@ import sammyt.cloudplayer.R;
 public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements StickyHeaders {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
     private ArrayList<Object[]> mItems = new ArrayList<>(); // [itemType, itemObject]
 
@@ -153,7 +156,6 @@ public class ArtistsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     public void updateArtistTracks(final ArrayList<JSONObject> tracks){
-        final Handler handler = new Handler();
         if(tracks != null) {
             new Thread(new Runnable() {
                 @Override
