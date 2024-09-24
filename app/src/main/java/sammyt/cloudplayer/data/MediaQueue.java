@@ -34,7 +34,7 @@ public class MediaQueue {
     }
 
     public void setQueue(ArrayList<JSONObject> queue) {
-        this.queue = queue;
+        this.queue = new ArrayList<>(queue);
     }
 
     public void setPosition(int position) {
@@ -58,10 +58,20 @@ public class MediaQueue {
     }
 
     public ArrayList<JSONObject> getQueue() {
-        return queue;
+        return new ArrayList<>(queue);
     }
 
     public int getPosition() {
         return position;
+    }
+
+    public JSONObject getCurrentTrack() {
+        return queue.get(position);
+    }
+
+    public void removeTrack(int position) {
+        queue.remove(position);
+
+        if(this.position > position) this.position--;
     }
 }

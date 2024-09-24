@@ -19,11 +19,14 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
 import sammyt.cloudplayer.PlayerService;
 import sammyt.cloudplayer.R;
+import sammyt.cloudplayer.data.MediaQueue;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -38,6 +41,8 @@ public class QueueFragment extends Fragment {
     private SessionToken sessionToken;
     private ListenableFuture<MediaController> controllerFuture;
     private MediaController mediaController;
+
+    private MediaQueue queue;
 
     public QueueFragment() {
         // Required empty public constructor
@@ -57,6 +62,8 @@ public class QueueFragment extends Fragment {
         mAdapter = new QueueAdapter(null);
         mAdapter.setOnQueueClickListener(mQueueClickListener);
         mQueueRecycler.setAdapter(mAdapter);
+
+        queue = MediaQueue.getInstance();
 
         back.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -97,45 +104,32 @@ public class QueueFragment extends Fragment {
     private void setController(MediaController controller) {
         mediaController = controller;
 
-        ArrayList<MediaItem> mediaItems = new ArrayList<>();
-
-        for(int i=0; i < mediaController.getMediaItemCount(); i++) {
-            mediaItems.add(mediaController.getMediaItemAt(i));
-        }
-
-        mAdapter.updateTracks(mediaItems);
-        mAdapter.setSelectedTrack(mediaController.getCurrentMediaItem());
+        mAdapter.updateTracks(queue.getQueue());
+        mAdapter.setSelectedTrack(queue.getCurrentTrack());
 
         mediaController.addListener(new Player.Listener() {
             @Override
             public void onMediaItemTransition(MediaItem mediaItem, int reason) {
                 Player.Listener.super.onMediaItemTransition(mediaItem, reason);
-                mAdapter.setSelectedTrack(mediaController.getCurrentMediaItem());
+
+                mAdapter.setSelectedTrack(queue.getCurrentTrack());
             }
         });
     }
 
     private QueueAdapter.onQueueClickListener mQueueClickListener = new QueueAdapter.onQueueClickListener() {
         @Override
-        public void onQueueClick(int position, MediaItem track) {
+        public void onQueueClick(int position, JSONObject track) {
             Log.d(LOG_TAG, "Queue click - " + position + " " + track);
 
-            if(mediaController == null) {
-                return;
-            }
-
-            mediaController.seekTo(position, 0);
+            queue.setPosition(position);
         }
 
         @Override
-        public void onQueueRemove(int position, MediaItem track) {
+        public void onQueueRemove(int position, JSONObject track) {
             Log.d(LOG_TAG, "Queue Remove click - " + position + " " + track);
 
-            if(mediaController == null) {
-                return;
-            }
-
-            mediaController.removeMediaItem(position);
+            queue.removeTrack(position);
             mAdapter.removeTrack(position);
         }
     };

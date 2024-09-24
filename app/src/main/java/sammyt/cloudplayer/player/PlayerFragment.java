@@ -195,9 +195,7 @@ public class PlayerFragment extends Fragment {
         mShuffle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mediaController == null) {
-                    return;
-                }
+                if(mediaController == null) return;
 
                 mediaController.setShuffleModeEnabled(!mediaController.getShuffleModeEnabled());
             }
@@ -206,17 +204,11 @@ public class PlayerFragment extends Fragment {
         mRepeat.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mediaController == null) {
-                    return;
-                }
+                if(mediaController == null) return;
 
-                int repeatMode = Player.REPEAT_MODE_OFF;
+                int mode = (mediaController.getRepeatMode() == Player.REPEAT_MODE_OFF) ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF;
 
-                if(mediaController.getRepeatMode() == Player.REPEAT_MODE_OFF) {
-                    repeatMode = Player.REPEAT_MODE_ONE;
-                }
-
-                mediaController.setRepeatMode(repeatMode);
+                mediaController.setRepeatMode(mode);
             }
         });
 

@@ -103,9 +103,7 @@ public class NavActivity extends AppCompatActivity {
         mPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mediaController == null) {
-                    return;
-                }
+                if(mediaController == null) return;
 
                 if(mediaController.isPlaying()) {
                     mediaController.pause();

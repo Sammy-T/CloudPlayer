@@ -22,7 +22,7 @@ import java.util.ArrayList;
 
 import sammyt.cloudplayer.R;
 
-public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
+public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder> {
 
     private final String LOG_TAG = this.getClass().getSimpleName();
 
@@ -32,7 +32,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
     private onTrackClickListener mListener;
 
-    public static class ViewHolder extends RecyclerView.ViewHolder{
+    public static class ViewHolder extends RecyclerView.ViewHolder {
         RelativeLayout trackItem;
         TextView trackTitle;
         TextView trackArtist;
@@ -47,7 +47,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
         }
     }
 
-    public TrackAdapter(Context context, ArrayList<JSONObject> tracks){
+    public TrackAdapter(Context context, ArrayList<JSONObject> tracks) {
         mContext = context;
 
         if(tracks != null) {
@@ -55,7 +55,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
         }
     }
 
-    public interface onTrackClickListener{
+    public interface onTrackClickListener {
         void onTrackClick(int position, JSONObject track);
     }
 
@@ -66,7 +66,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
     // Create new views (invoked by Layout Manager)
     @Override
     @NonNull
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType){
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         // set the view's size, margins, paddings and layout parameters here if needed
 
         int layout = R.layout.track_item;
@@ -88,11 +88,11 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
         final JSONObject track = mTracks.get(position);
 
-        try{
+        try {
             title = track.getString("title");
             artist = track.getJSONObject("user").getString("username");
             trackImage = track.getString("artwork_url");
-        }catch(JSONException e){
+        } catch(JSONException e) {
             Log.e(LOG_TAG, "Unable to retrieve track data.", e);
             return;
         }
@@ -107,16 +107,17 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
         long trackId = -1;
         long selectedTrackId = -2;
 
-        try{
+        try {
             trackId = track.getLong("id");
+
             if(mSelectedTrack != null) {
                 selectedTrackId = mSelectedTrack.getLong("id");
             }
-        }catch(JSONException e){
+        } catch(JSONException e) {
             Log.e(LOG_TAG, "Unable to retrieve track or selected track id", e);
         }
 
-        if(mSelectedTrack != null && trackId == selectedTrackId){
+        if(mSelectedTrack != null && trackId == selectedTrackId) {
             textColor = ContextCompat.getColor(mContext, R.color.colorPrimary);
         }
 
@@ -124,7 +125,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
         holder.trackArtist.setTextColor(textColor);
 
         // Set the item's track image
-        if(trackImage != null){
+        if(trackImage != null) {
             holder.trackImage.setVisibility(View.VISIBLE);
 
             // Request measuring of the item's view so we have some dimensions to use
@@ -140,14 +141,14 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
                     .centerCrop()
                     .error(android.R.drawable.stat_notify_error)
                     .into(holder.trackImage);
-        }else{
+        } else {
             holder.trackImage.setVisibility(View.INVISIBLE);
         }
 
         holder.trackItem.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mListener != null){
+                if(mListener != null) {
                     mListener.onTrackClick(holder.getBindingAdapterPosition(), track);
                 }
             }
@@ -156,20 +157,20 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.ViewHolder>{
 
     // Return the size of the dataset (invoked by Layout Manager)
     @Override
-    public int getItemCount(){
-        if(mTracks == null){
+    public int getItemCount() {
+        if(mTracks == null) {
             Log.wtf(LOG_TAG, "How the f*ck are you null?!");
             return 0;
         }
         return mTracks.size();
     }
 
-    public void updateTracks(ArrayList<JSONObject> tracks){
+    public void updateTracks(ArrayList<JSONObject> tracks) {
         mTracks = tracks;
         notifyDataSetChanged();
     }
 
-    public void setSelectedTrack(JSONObject selectedTrack){
+    public void setSelectedTrack(JSONObject selectedTrack) {
         mSelectedTrack = selectedTrack;
         notifyDataSetChanged();
     }
