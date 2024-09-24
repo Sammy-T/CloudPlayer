@@ -18,17 +18,17 @@ public class SelectedTrackModel extends ViewModel {
 
     private MutableLiveData<SelectedTrack> mSelectedTrack;
 
-    public SelectedTrackModel(){
+    public SelectedTrackModel() {
         mSelectedTrack = new MutableLiveData<>();
         mSelectedTrack.setValue(null);
     }
 
-    public void setSelectedTrack(int position, JSONObject track, ArrayList<JSONObject> trackList, String selectionSource){
+    public void setSelectedTrack(int position, JSONObject track, ArrayList<JSONObject> trackList, String selectionSource) {
         SelectedTrack selectedTrack = new SelectedTrack(position, track, trackList, selectionSource);
         mSelectedTrack.setValue(selectedTrack);
     }
 
-    public void updateSelectedTrack(int position, JSONObject track, String selectionSource){
+    public void updateSelectedTrack(int position, JSONObject track, String selectionSource) {
         ArrayList<JSONObject> trackList = mSelectedTrack.getValue().getTrackList();
         setSelectedTrack(position, track, trackList, selectionSource);
     }
@@ -57,8 +57,9 @@ public class SelectedTrackModel extends ViewModel {
 
         try {
             for(int i=0; i < trackList.size(); i++) {
-                String streamUrl = trackList.get(i).getString("stream_url");
-                if(mediaItem.mediaId.equals(streamUrl)) {
+                String id = trackList.get(i).getString("id");
+
+                if(mediaItem.mediaId.equals(id)) {
                     found = i;
                     break;
                 }
@@ -72,13 +73,13 @@ public class SelectedTrackModel extends ViewModel {
 
     // This is a helper class so our observers only need to monitor one Live Data variable
     // that will hold all the values we're interested in
-    public class SelectedTrack{
+    public class SelectedTrack {
         private int mPos;
         private JSONObject mTrack;
         private ArrayList<JSONObject> mTrackList;
         private String mSelectionSource;
 
-        SelectedTrack(int position, JSONObject selectedTrack, ArrayList<JSONObject> trackList, String selectionSource){
+        SelectedTrack(int position, JSONObject selectedTrack, ArrayList<JSONObject> trackList, String selectionSource) {
             mPos = position;
             mTrack = selectedTrack;
             mTrackList = trackList;
