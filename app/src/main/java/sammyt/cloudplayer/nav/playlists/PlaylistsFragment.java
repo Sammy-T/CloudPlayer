@@ -33,12 +33,10 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.data.CloudClient;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.nav.TrackAdapter;
-import sammyt.cloudplayer.nav.artists.ArtistsFragment;
 
 public class PlaylistsFragment extends Fragment {
 

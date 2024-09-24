@@ -1,12 +1,10 @@
 package sammyt.cloudplayer.player;
 
 
-import android.Manifest;
 import android.animation.ObjectAnimator;
 import android.content.ComponentName;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
-import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.os.Handler;
@@ -36,7 +34,6 @@ import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
 
-import com.google.android.material.snackbar.Snackbar;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
@@ -52,7 +49,6 @@ import java.util.concurrent.TimeUnit;
 
 import sammyt.cloudplayer.PlayerService;
 import sammyt.cloudplayer.R;
-import sammyt.cloudplayer.data.PlayerSessionId;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -252,19 +248,20 @@ public class PlayerFragment extends Fragment {
     public void onResume(){
         super.onResume();
 
-        if(!checkPermission(Manifest.permission.RECORD_AUDIO)){
-            String message = "Record Permission required for audio visualization";
-            String action = "Allow";
-
-            Snackbar snackbar = Snackbar.make(mSurface, message, Snackbar.LENGTH_INDEFINITE);
-            snackbar.setAction(action, new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
-                }
-            });
-            snackbar.show();
-        }
+        //// TODO: Remove or add new visualizer
+//        if(!checkPermission(Manifest.permission.RECORD_AUDIO)){
+//            String message = "Record Permission required for audio visualization";
+//            String action = "Allow";
+//
+//            Snackbar snackbar = Snackbar.make(mSurface, message, Snackbar.LENGTH_INDEFINITE);
+//            snackbar.setAction(action, new View.OnClickListener() {
+//                @Override
+//                public void onClick(View v) {
+//                    requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
+//                }
+//            });
+//            snackbar.show();
+//        }
 
         executor = Executors.newSingleThreadScheduledExecutor();
     }
@@ -450,8 +447,7 @@ public class PlayerFragment extends Fragment {
 
     private final Runnable progressRunnable = () -> {
         if(mediaController != null) {
-            updateProgress(mediaController.getDuration(), mediaController.getCurrentPosition(),
-                    mediaController.getBufferedPosition());
+            updateProgress(mediaController.getDuration(), mediaController.getCurrentPosition(), mediaController.getBufferedPosition());
         }
     };
 

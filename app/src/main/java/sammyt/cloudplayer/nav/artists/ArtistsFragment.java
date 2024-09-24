@@ -15,7 +15,6 @@ import android.widget.TextView;
 import android.widget.ViewFlipper;
 
 import androidx.activity.OnBackPressedCallback;
-import androidx.activity.OnBackPressedDispatcher;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
@@ -39,13 +38,11 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import sammyt.cloudplayer.NavActivity;
 import sammyt.cloudplayer.R;
 import sammyt.cloudplayer.data.CloudClient;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.nav.TrackAdapter;
 import sammyt.cloudplayer.nav.TrackViewModel;
-import sammyt.cloudplayer.nav.home.HomeFragment;
 
 public class ArtistsFragment extends Fragment {
 

@@ -2,10 +2,7 @@ package sammyt.cloudplayer;
 
 import android.animation.ObjectAnimator;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,13 +14,11 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.media3.common.MediaItem;
-import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.Player;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
@@ -34,26 +29,13 @@ import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
-import sammyt.cloudplayer.data.CloudClient;
+import sammyt.cloudplayer.data.MediaQueue;
 import sammyt.cloudplayer.nav.SelectedTrackModel;
 import sammyt.cloudplayer.player.PlayerActivity;
 
@@ -103,16 +85,18 @@ public class NavActivity extends AppCompatActivity {
 
         selectedTrackModel = new ViewModelProvider(this).get(SelectedTrackModel.class);
 
-        // Observe the shared View Model to update the service's track list & load the selected track
+        MediaQueue queue = MediaQueue.getInstance();
+
+        // Observe the shared View Model to update the queue's track list & selected track position
         selectedTrackModel.getSelectedTrack().observe(this, new Observer<SelectedTrackModel.SelectedTrack>() {
             @Override
             public void onChanged(SelectedTrackModel.SelectedTrack selectedTrack) {
-                if(selectedTrack == null || selectedTrack.getSelectionSource().equals(LOG_TAG) ||
-                        mediaController == null) {
+                if(selectedTrack == null || selectedTrack.getSelectionSource().equals(LOG_TAG) || mediaController == null) {
                     return; // Prevent an endless loop if this was triggered by this activity
                 }
 
-                createMediaItem(selectedTrack.getTrack());
+                queue.setQueue(selectedTrack.getTrackList());
+                queue.setPosition(selectedTrack.getPos());
             }
         });
 
@@ -220,7 +204,9 @@ public class NavActivity extends AppCompatActivity {
         // when navigating away from then back to this activity.
         if(mediaController.isPlaying()) {
             updateUI();
+
             selectedTrackModel.updateSelectedTrack(mediaController.getCurrentMediaItem(), LOG_TAG);
+
             future = executor.scheduleWithFixedDelay(progressHelperRunnable, 0, 1, TimeUnit.SECONDS);
         }
 
@@ -241,103 +227,12 @@ public class NavActivity extends AppCompatActivity {
             @Override
             public void onMediaItemTransition(MediaItem mediaItem, int reason) {
                 Player.Listener.super.onMediaItemTransition(mediaItem, reason);
+
                 updateUI();
+
+                selectedTrackModel.updateSelectedTrack(mediaController.getCurrentMediaItem(), LOG_TAG);
             }
         });
-    }
-
-    private void createMediaItem(JSONObject track) {
-        try {
-            String artworkUrl = track.getString("artwork_url");
-            String username = track.getJSONObject("user").getString("username");
-            String title = track.getString("title");
-
-            String trackAuthorization = track.getString("track_authorization");
-            String trackUrl = "";
-
-            JSONObject media = track.getJSONObject("media");
-            JSONArray transcodings = media.getJSONArray("transcodings");
-
-            for(int i=0; i < transcodings.length(); i++) {
-                JSONObject transcoding = transcodings.getJSONObject(i);
-
-                String protocol = transcoding.getJSONObject("format").getString("protocol");
-
-                if(protocol.equals("progressive")) trackUrl = transcoding.getString("url");
-            }
-
-            if(trackUrl.isEmpty()) {
-                Log.w(LOG_TAG, "wtf\n" + title + "\n" + transcodings);
-                throw new Error("Invalid track url");
-            }
-
-            String params = "?client_id=" + getString(R.string.client_id)
-                    + "&track_authorization=" + trackAuthorization;
-
-            String url = trackUrl + params;
-
-            Request request = new Request.Builder()
-                    .url(url)
-                    .header("Authorization", "OAuth " + getString(R.string.token))
-                    .build();
-
-            OkHttpClient client = CloudClient.getInstance().getClient();
-
-            client.newCall(request).enqueue(new Callback() {
-                @Override
-                public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                    Log.e(LOG_TAG, "Error getting stream url.", e);
-                }
-
-                @Override
-                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                    try {
-                        if(!response.isSuccessful()) throw new IOException("Unexpected code" + response);
-
-                        ResponseBody responseBody = response.body();
-                        String rawResponse = responseBody.string();
-
-                        JSONObject parsed = new JSONObject(rawResponse);
-
-                        String streamUrl = parsed.getString("url");
-
-                        Bundle bundle = new Bundle();
-                        bundle.putString("artwork_url", artworkUrl);
-
-                        MediaItem.RequestMetadata requestMetadata = new MediaItem.RequestMetadata.Builder()
-                                .setMediaUri(Uri.parse(streamUrl))
-                                .build();
-
-                        MediaMetadata mediaMetadata = new MediaMetadata.Builder()
-                                .setArtist(username)
-                                .setTitle(title)
-                                .setArtworkUri(Uri.parse(artworkUrl))
-                                .setExtras(bundle)
-                                .build();
-
-                        MediaItem mediaItem = new MediaItem.Builder()
-                                .setMediaId(streamUrl)
-                                .setMediaMetadata(mediaMetadata)
-                                .setRequestMetadata(requestMetadata)
-                                .build();
-
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                mediaController.setMediaItem(mediaItem);
-
-                                mediaController.prepare();
-                                mediaController.play();
-                            }
-                        });
-                    } catch(IOException | JSONException e) {
-                        Log.e(LOG_TAG, "SC f*cking sucks.", e);
-                    }
-                }
-            });
-        } catch(JSONException | Error e) {
-            Log.e(LOG_TAG, "Unable to create MediaItem", e);
-        }
     }
 
     /**
@@ -353,8 +248,7 @@ public class NavActivity extends AppCompatActivity {
 
     private final Runnable progressRunnable = () -> {
         if(mediaController != null) {
-            updateProgress(mediaController.getDuration(), mediaController.getCurrentPosition(),
-                    mediaController.getBufferedPosition());
+            updateProgress(mediaController.getDuration(), mediaController.getCurrentPosition(), mediaController.getBufferedPosition());
         }
     };
 }
