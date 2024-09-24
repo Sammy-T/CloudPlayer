@@ -49,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 
 import sammyt.cloudplayer.PlayerService;
 import sammyt.cloudplayer.R;
+import sammyt.cloudplayer.data.MediaQueue;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -94,7 +95,7 @@ public class PlayerFragment extends Fragment {
 
         ImageButton previous;
         ImageButton next;
-        ImageButton queue;
+        ImageButton viewQueue;
         ImageButton back;
 
         mSurface = root.findViewById(R.id.surface);
@@ -108,7 +109,7 @@ public class PlayerFragment extends Fragment {
         mPlay = root.findViewById(R.id.play);
         next = root.findViewById(R.id.next);
         mRepeat = root.findViewById(R.id.repeat);
-        queue = root.findViewById(R.id.queue_button);
+        viewQueue = root.findViewById(R.id.queue_button);
         back = root.findViewById(R.id.player_back);
 
         // Layer the surface view on top and set it to translucent
@@ -132,6 +133,8 @@ public class PlayerFragment extends Fragment {
         mSecProgressAnim.setPropertyName("secondaryProgress");
         mSecProgressAnim.setDuration(1000);
         mSecProgressAnim.setInterpolator(new LinearInterpolator());
+
+        MediaQueue queue = MediaQueue.getInstance();
 
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -171,22 +174,14 @@ public class PlayerFragment extends Fragment {
         previous.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mediaController == null) {
-                    return;
-                }
-
-                mediaController.seekToPreviousMediaItem();
+                queue.decreasePosition();
             }
         });
 
         next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mediaController == null) {
-                    return;
-                }
-
-                mediaController.seekToNextMediaItem();
+                queue.advancePosition();
             }
         });
 
@@ -218,7 +213,7 @@ public class PlayerFragment extends Fragment {
             }
         });
 
-        queue.setOnClickListener(new View.OnClickListener() {
+        viewQueue.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 getParentFragmentManager().beginTransaction()
