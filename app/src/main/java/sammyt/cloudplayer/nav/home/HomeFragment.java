@@ -147,7 +147,7 @@ public class HomeFragment extends Fragment {
             setVisibleView(VisibleView.loading);
 
             String limit = "24";
-            String offset = "2019-08-22T06:36:46.882Z,user-track-likes,728-00000000000042908683-00000000000432120552";
+            String offset = "0";
 
             String endpoint = "/users/" + getString(R.string.user_id) + "/track_likes";
 
