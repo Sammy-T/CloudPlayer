@@ -78,6 +78,8 @@ public class PlayerFragment extends Fragment {
     private ListenableFuture<MediaController> controllerFuture;
     private MediaController mediaController;
 
+    private MediaQueue queue;
+
     private ScheduledExecutorService executor;
     private ScheduledFuture<?> future;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -134,7 +136,7 @@ public class PlayerFragment extends Fragment {
         mSecProgressAnim.setDuration(1000);
         mSecProgressAnim.setInterpolator(new LinearInterpolator());
 
-        MediaQueue queue = MediaQueue.getInstance();
+        queue = MediaQueue.getInstance();
 
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -195,9 +197,13 @@ public class PlayerFragment extends Fragment {
         mShuffle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mediaController == null) return;
+                if(queue.isShuffled()) {
+                    queue.unShuffleQueue();
+                } else {
+                    queue.shuffleQueue();
+                }
 
-                mediaController.setShuffleModeEnabled(!mediaController.getShuffleModeEnabled());
+                updateUI();
             }
         });
 
@@ -287,7 +293,7 @@ public class PlayerFragment extends Fragment {
         int shuffleColor = ContextCompat.getColor(requireContext(), R.color.colorPrimaryTrans50);
         int repeatColor = ContextCompat.getColor(requireContext(), R.color.colorPrimaryTrans50);
 
-        if(mediaController.getShuffleModeEnabled()) {
+        if(queue.isShuffled()) {
             shuffleColor = ContextCompat.getColor(requireContext(), R.color.colorPrimary);
         }
 

@@ -3,11 +3,14 @@ package sammyt.cloudplayer.data;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class MediaQueue {
 
+    private ArrayList<JSONObject> baseQueue;
     private ArrayList<JSONObject> queue;
     private int position;
+    private boolean shuffled = false;
 
     private final ArrayList<Listener> listeners = new ArrayList<>();
 
@@ -34,7 +37,23 @@ public class MediaQueue {
     }
 
     public void setQueue(ArrayList<JSONObject> queue) {
+        this.baseQueue = new ArrayList<>(queue);
         this.queue = new ArrayList<>(queue);
+    }
+
+    public void shuffleQueue() {
+        JSONObject currentTrack = queue.remove(position);
+
+        Collections.shuffle(queue);
+        queue.add(position, currentTrack);
+
+        shuffled = true;
+    }
+
+    public void unShuffleQueue() {
+        queue = new ArrayList<>(baseQueue);
+
+        shuffled = false;
     }
 
     public void setPosition(int position) {
@@ -73,5 +92,9 @@ public class MediaQueue {
         queue.remove(position);
 
         if(this.position > position) this.position--;
+    }
+
+    public boolean isShuffled() {
+        return shuffled;
     }
 }
