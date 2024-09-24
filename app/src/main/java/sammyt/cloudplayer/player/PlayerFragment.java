@@ -159,9 +159,7 @@ public class PlayerFragment extends Fragment {
         mPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mediaController == null) {
-                    return;
-                }
+                if(mediaController == null) return;
 
                 if(mediaController.isPlaying()) {
                     mediaController.pause();
@@ -174,7 +172,16 @@ public class PlayerFragment extends Fragment {
         previous.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                queue.decreasePosition();
+                if(mediaController == null) return;
+
+                // If the current position is more than 5 seconds in,
+                // seek to the beginning of the current track.
+                // Otherwise, navigate to the previous track.
+                if(mediaController.getCurrentPosition() > 5000) {
+                    mediaController.seekToDefaultPosition();
+                } else {
+                    queue.decreasePosition();
+                }
             }
         });
 
