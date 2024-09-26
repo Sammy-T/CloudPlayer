@@ -338,7 +338,7 @@ public class PlayerService extends MediaSessionService implements MediaSession.C
                 stateMsg += "ENDED";
 
                 // Advance to the next track if playback of the current media has ended.
-                if(player.getRepeatMode() == Player.REPEAT_MODE_OFF) queue.advancePosition();
+                if(player.getRepeatMode() == Player.REPEAT_MODE_OFF) player.seekToNext();
                 break;
 
             default:
