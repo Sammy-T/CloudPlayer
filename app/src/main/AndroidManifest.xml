@@ -16,7 +16,7 @@
         android:roundIcon="@mipmap/cloud_player"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="false">
         <activity
             android:name=".NavActivity"
             android:exported="true"
