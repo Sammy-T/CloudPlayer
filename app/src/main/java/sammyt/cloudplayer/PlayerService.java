@@ -57,6 +57,8 @@ public class PlayerService extends MediaSessionService implements MediaSession.C
 
     private final Handler handler = new Handler(Looper.getMainLooper());
 
+    private int loadAttempts = 0;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -202,6 +204,8 @@ public class PlayerService extends MediaSessionService implements MediaSession.C
      */
     private void loadMediaItem(JSONObject track) {
         try {
+            loadAttempts++;
+
             String id = track.getString("id");
             String artworkUrl = track.getString("artwork_url");
             String username = track.getJSONObject("user").getString("username");
@@ -235,6 +239,7 @@ public class PlayerService extends MediaSessionService implements MediaSession.C
                 @Override
                 public void onFailure(@NonNull Call call, @NonNull IOException e) {
                     Log.e(LOG_TAG, "Error getting stream url.", e);
+                    if(loadAttempts < 2) loadMediaItem(track);
                 }
 
                 @Override
@@ -281,10 +286,12 @@ public class PlayerService extends MediaSessionService implements MediaSession.C
 
                                 player.prepare();
                                 player.play();
+
+                                loadAttempts = 0;
                             }
                         });
                     } catch(IOException | JSONException e) {
-                        Log.e(LOG_TAG, "Error loading media item", e);
+                        Log.e(LOG_TAG, "Error preparing media item", e);
                     }
                 }
             });
