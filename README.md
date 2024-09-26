@@ -7,6 +7,14 @@ CloudPlayer is an Android media player app which streams content from SoundCloud
 
 If you're looking to build and run this project, you should take note of the following concerns:
 
+> [!IMPORTANT]
+> Battery optimization settings may need to be disabled for the app to function correctly. 
+> 
+> It seems that Doze Mode may kill the app regardless of having the correct permissions declared
+> and using a MediaSessionService.
+> 
+> I don't know the correct way to handle this so this'll have to do for the time being.
+
 ### String Resources
 
 | Name | Description |
