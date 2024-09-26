@@ -10,6 +10,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
 import androidx.media3.common.AudioAttributes;
+import androidx.media3.common.ForwardingPlayer;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.MimeTypes;
@@ -41,15 +42,15 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import sammyt.cloudplayer.data.CloudClient;
 import sammyt.cloudplayer.data.MediaQueue;
-import sammyt.cloudplayer.data.PlayerSessionId;
 
+@UnstableApi
 public class PlayerService extends MediaSessionService implements MediaSession.Callback, Player.Listener, MediaQueue.Listener {
 
     private static final String LOG_TAG = PlayerService.class.getSimpleName();
 
     private final Context context = PlayerService.this;
 
-    private ExoPlayer player;
+    private ForwardingPlayer player;
     private MediaSession mediaSession;
 
     private final MediaQueue queue = MediaQueue.getInstance();
@@ -89,10 +90,90 @@ public class PlayerService extends MediaSessionService implements MediaSession.C
 
     @OptIn(markerClass = UnstableApi.class)
     private void initPlayerAndSession() {
-        player = new ExoPlayer.Builder(context)
+        ExoPlayer exoPlayer = new ExoPlayer.Builder(context)
                 .setAudioAttributes(AudioAttributes.DEFAULT, true)
                 .setMediaSourceFactory(getMediaSourceFactory())
                 .build();
+
+        player = new ForwardingPlayer(exoPlayer) {
+            @NonNull
+            @Override
+            public Commands getAvailableCommands() {
+                Commands oc = super.getAvailableCommands();
+                Commands c = oc
+                        .buildUpon()
+                        .add(COMMAND_SEEK_TO_NEXT)
+                        .add(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                        .add(COMMAND_GET_TIMELINE)
+                        .build();
+
+                return c;
+
+//                return super.getAvailableCommands()
+//                        .buildUpon()
+//                        .add(COMMAND_SEEK_TO_NEXT)
+//                        .add(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+//                        .add(COMMAND_GET_TIMELINE)
+//                        .build();
+            }
+
+            @Override
+            public boolean isCommandAvailable(int command) {
+//                if(command == COMMAND_SEEK_TO_NEXT || command == COMMAND_SEEK_TO_NEXT_MEDIA_ITEM) {
+//                    Log.d("lskdj", "lskdjf");
+//                }
+                return super.isCommandAvailable(command);
+            }
+
+            @Override
+            public boolean hasPreviousMediaItem() {
+                // We want to automatically loop the queue.
+                // So only the size is relevant here.
+                return queue.getQueue().size() > 1;
+            }
+
+            @Override
+            public boolean hasNextMediaItem() {
+                // We want to automatically loop the queue.
+                // So only the size is relevant here.
+                return queue.getQueue().size() > 1;
+            }
+
+            @Override
+            public long getMaxSeekToPreviousPosition() {
+                return 5 * 1000;
+            }
+
+            @Override
+            public void seekToPrevious() {
+                if(hasPreviousMediaItem() && getCurrentPosition() < getMaxSeekToPreviousPosition()) {
+                    queue.decreasePosition();
+                } else {
+                    seekToDefaultPosition();
+                }
+            }
+
+            @Override
+            public void seekToPreviousMediaItem() {
+                if(!hasPreviousMediaItem()) return;
+
+                queue.decreasePosition();
+            }
+
+            @Override
+            public void seekToNext() {
+                if(!hasNextMediaItem()) return;
+
+                queue.advancePosition();
+            }
+
+            @Override
+            public void seekToNextMediaItem() {
+                if(!hasNextMediaItem()) return;
+
+                queue.advancePosition();
+            }
+        };
 
         player.addListener(this);
 
@@ -101,7 +182,7 @@ public class PlayerService extends MediaSessionService implements MediaSession.C
                 .build();
 
         // Use our custom helper as a store for the session id value
-        PlayerSessionId.getInstance().setSessionId(player.getAudioSessionId());
+//        PlayerSessionId.getInstance().setSessionId(exoPlayer.getAudioSessionId());
     }
 
     @OptIn(markerClass = UnstableApi.class)

@@ -3,6 +3,7 @@ package sammyt.cloudplayer.player;
 
 import android.animation.ObjectAnimator;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.PixelFormat;
@@ -24,14 +25,17 @@ import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.core.content.ContextCompat;
 import androidx.core.widget.ImageViewCompat;
 import androidx.fragment.app.Fragment;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
+import androidx.media3.common.util.BitmapLoader;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaController;
+import androidx.media3.session.SessionCommands;
 import androidx.media3.session.SessionToken;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -176,21 +180,24 @@ public class PlayerFragment extends Fragment {
             public void onClick(View v) {
                 if(mediaController == null) return;
 
-                // If the current position is more than 5 seconds in,
-                // seek to the beginning of the current track.
-                // Otherwise, navigate to the previous track.
-                if(mediaController.getCurrentPosition() > 5000) {
-                    mediaController.seekToDefaultPosition();
-                } else {
-                    queue.decreasePosition();
-                }
+                mediaController.seekToPrevious();
             }
         });
 
         next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                queue.advancePosition();
+                /*
+                  I would like to use the MediaController here
+                  but it appears to reset the available commands
+                  after seeking. So it only works the first time.
+
+                  I don't understand wtf is going on cause
+                  it works for 'previous'.
+
+                  @see {https://github.com/androidx/media/issues/1708}
+                 */
+                if(queue.getQueue().size() > 1) queue.advancePosition();
             }
         });
 
@@ -387,10 +394,12 @@ public class PlayerFragment extends Fragment {
         mTimeView.setText(timeText);
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     private void initController() {
         SessionToken sessionToken = new SessionToken(requireContext(), new ComponentName(requireContext(), PlayerService.class));
 
         controllerFuture = new MediaController.Builder(requireContext(), sessionToken).buildAsync();
+
         controllerFuture.addListener(() -> {
             try {
                 setController(controllerFuture.get());
@@ -430,6 +439,11 @@ public class PlayerFragment extends Fragment {
             @Override
             public void onAudioSessionIdChanged(int audioSessionId) {
                 Player.Listener.super.onAudioSessionIdChanged(audioSessionId);
+            }
+
+            @Override
+            public void onAvailableCommandsChanged(@NonNull Player.Commands availableCommands) {
+                Player.Listener.super.onAvailableCommandsChanged(availableCommands);
             }
         });
     }

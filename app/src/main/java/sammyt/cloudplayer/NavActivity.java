@@ -14,12 +14,14 @@ import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
+import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaController;
 import androidx.media3.session.SessionToken;
 import androidx.navigation.NavController;
@@ -182,6 +184,7 @@ public class NavActivity extends AppCompatActivity {
         mProgressAnim.start();
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     private void initController() {
         SessionToken sessionToken = new SessionToken(this, new ComponentName(this, PlayerService.class));
 
