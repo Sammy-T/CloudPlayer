@@ -198,6 +198,7 @@ public class PlayerFragment extends Fragment {
                   @see {https://github.com/androidx/media/issues/1708}
                  */
                 if(queue.getQueue().size() > 1) queue.advancePosition();
+//                mediaController.seekToNext();
             }
         });
 
@@ -441,9 +442,15 @@ public class PlayerFragment extends Fragment {
                 Player.Listener.super.onAudioSessionIdChanged(audioSessionId);
             }
 
+            @OptIn(markerClass = UnstableApi.class)
             @Override
             public void onAvailableCommandsChanged(@NonNull Player.Commands availableCommands) {
-                Player.Listener.super.onAvailableCommandsChanged(availableCommands);
+                Player.Commands commands = availableCommands/*.buildUpon()
+                        .add(Player.COMMAND_SEEK_TO_NEXT)
+                        .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                        .build()*/;
+
+                Player.Listener.super.onAvailableCommandsChanged(commands);
             }
         });
     }
